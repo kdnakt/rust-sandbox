@@ -39,4 +39,14 @@ fn main() {
         },
         _ => println!("_"),
     }
+
+    match map.get("key") {
+        Some(object) => {
+            let identifier = object.as_any()
+                    .downcast_ref::<Identifier>()
+                    .expect("Not an Identifier");
+            println!("some: {:?}", identifier);
+        },
+        _ => println!("_"),
+    }
 }
