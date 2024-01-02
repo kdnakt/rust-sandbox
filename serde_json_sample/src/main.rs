@@ -12,6 +12,8 @@ fn main() -> Result<()> {
     println!("Hello, world!");
 
     let data = include_bytes!("./person.json");
+    println!("{:?}", data);
+    println!("{}", String::from_utf8_lossy(data));
     let p: Person = serde_json::from_slice(data)?;
     println!("Please call {} at the number {}", p.name, p.phones[0]);
 
