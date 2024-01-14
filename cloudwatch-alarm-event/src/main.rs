@@ -77,6 +77,8 @@ where
     #[serde(default, bound = "")]
     pub reason_data: Option<R>,
     pub timestamp: DateTime<Utc>,
+    pub actions_suppressed_by: Option<String>,
+    pub actions_suppressed_reason: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -278,7 +280,7 @@ struct Response {
 /// - https://github.com/awslabs/aws-lambda-rust-runtime/tree/main/examples
 /// - https://github.com/aws-samples/serverless-rust-demo/
 async fn function_handler(event: LambdaEvent<CloudWatchAlarm>) -> Result<Response, Error> {
-    println!("DEBUG: payload=\n{:?}", event.payload);
+    println!("DEBUG: payload=\n{}", serde_json::to_string_pretty(&event.payload)?);
     // Prepare the response
     let resp = Response {
         req_id: event.context.request_id,
