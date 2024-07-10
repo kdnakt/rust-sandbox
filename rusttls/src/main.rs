@@ -1,6 +1,8 @@
 use std::io::prelude::*;
 use std::net::TcpStream;
 
+mod tls;
+
 fn main() -> std::io::Result<()> {
     println!("Hello, world!");
 
