@@ -14,6 +14,8 @@ fn main() -> std::io::Result<()> {
         content_type: tls::TlsContentType::Handshake,
         // TLS 1.2
         protocol_version: tls::TlsProtocolVersion { major: 3, minor: 3 },
+        length: 0,
+        data: &[],
     };
     println!("{:?}", record.as_bytes());
     stream.write(record.as_bytes())?;

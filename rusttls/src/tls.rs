@@ -1,11 +1,13 @@
 #[repr(C)]
-pub struct TlsRecord {
+pub struct TlsRecord<'a> {
     pub content_type: TlsContentType,
     pub protocol_version: TlsProtocolVersion,
+    pub length: u16,
+    pub data: &'a [u8],
 }
 
 
-impl TlsRecord {
+impl<'a> TlsRecord<'a> {
     pub fn as_bytes(&self) -> &[u8] {
         unsafe {
             std::slice::from_raw_parts(
@@ -35,7 +37,9 @@ mod tests {
         let protocol_version = TlsProtocolVersion { major: 3, minor: 3 };
         let client_hello = TlsRecord {
             content_type: TlsContentType::Handshake,
-            protocol_version
+            protocol_version,
+            length: 1,
+            data: &[0],
         };
         assert_eq!([22, 3, 3], client_hello.as_bytes());
     }
