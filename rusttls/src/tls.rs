@@ -1,27 +1,42 @@
 #[repr(C)]
-pub struct TlsRecord<'a> {
+pub struct TlsRecord {
     pub content_type: TlsContentType,
     pub protocol_version: TlsProtocolVersion,
     pub length: u16,
-    pub data: &'a [u8],
+    pub data: Vec<u8>,
 }
 
-
-impl<'a> TlsRecord<'a> {
-    pub fn as_bytes(&self) -> &[u8] {
-        unsafe {
-            std::slice::from_raw_parts(
-                self as *const TlsRecord as *const u8,
-                (5 + self.length).into(),
-                // std::mem::size_of::<TlsRecord>(),
-            )
-        }
+impl TlsRecord {
+    pub fn as_bytes(&mut self) -> Vec<u8> {
+        let mut vec: Vec<u8> = Vec::new();
+        vec.push(self.content_type.into());
+        vec.push(self.protocol_version.major);
+        vec.push(self.protocol_version.minor);
+        let len = self.data.len() as u16;
+        vec.push((len >> 8) as u8);
+        vec.push((len & 0xFF) as u8);
+        vec.append(&mut self.data);
+        vec
+        // unsafe {
+        //     std::slice::from_raw_parts(
+        //         self as *const TlsRecord as *const u8,
+        //         (5 + self.length).into(),
+        //         // std::mem::size_of::<TlsRecord>(),
+        //     )
+        // }
     }
 }
 
 #[repr(u8)]
+#[derive(Copy, Clone)]
 pub enum TlsContentType {
     Handshake = 22, // 0x16
+}
+
+impl From<TlsContentType> for u8 {
+    fn from(v: TlsContentType) -> Self {
+        v as u8
+    }
 }
 
 pub struct TlsProtocolVersion {
@@ -36,13 +51,15 @@ mod tests {
     #[test]
     fn tls_client_hello() {
         let protocol_version = TlsProtocolVersion { major: 3, minor: 3 };
-        let client_hello = TlsRecord {
+        let data = vec![7, 8, 9];
+        let mut client_hello = TlsRecord {
             content_type: TlsContentType::Handshake,
             protocol_version,
+            // length: data.len() as u16, // => somehow fails...
             length: 3,
-            data: &[7, 8, 9],
+            data,
         };
-        assert_eq!([22, 3, 3, 0, 3, 7, 8, 9], client_hello.as_bytes());
+        assert_eq!(vec![22, 3, 3, 0, 3, 7, 8, 9], client_hello.as_bytes());
     }
 
 }
