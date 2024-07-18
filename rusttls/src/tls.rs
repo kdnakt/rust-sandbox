@@ -7,6 +7,19 @@ pub struct TlsRecord {
 }
 
 impl TlsRecord {
+    pub fn new(
+        content_type: TlsContentType,
+        protocol_version: TlsProtocolVersion,
+        data: Vec<u8>,
+    ) -> Self {
+        Self {
+            content_type,
+            protocol_version,
+            length: data.len() as u16,
+            data,
+        }
+    }
+
     pub fn as_bytes(&mut self) -> Vec<u8> {
         let mut vec: Vec<u8> = Vec::new();
         vec.push(self.content_type.into());
@@ -62,4 +75,11 @@ mod tests {
         assert_eq!(vec![22, 3, 3, 0, 3, 7, 8, 9], client_hello.as_bytes());
     }
 
+    #[test]
+    fn new_tls_record() {
+        let protocol_version = TlsProtocolVersion { major: 3, minor: 3 };
+        let data = vec![7, 8, 9, 10];
+        let mut client_hello = TlsRecord::new(TlsContentType::Handshake, protocol_version, data);
+        assert_eq!(vec![22, 3, 3, 0, 4, 7, 8, 9, 10], client_hello.as_bytes());
+    }
 }
