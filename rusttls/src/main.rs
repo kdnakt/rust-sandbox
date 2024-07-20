@@ -1,9 +1,10 @@
 use std::io::prelude::*;
 use std::net::TcpStream;
 
-use tls::TlsRecord;
+use record::TlsRecord;
 
-mod tls;
+mod record;
+mod handshake;
 
 fn main() -> std::io::Result<()> {
     println!("Hello, world!");
@@ -11,9 +12,9 @@ fn main() -> std::io::Result<()> {
     let mut stream = TcpStream::connect("127.0.0.1:8443")?;
 
     let mut record = TlsRecord {
-        content_type: tls::TlsContentType::Handshake,
+        content_type: record::TlsContentType::Handshake,
         // TLS 1.2
-        protocol_version: tls::TlsProtocolVersion { major: 3, minor: 3 },
+        protocol_version: record::TlsProtocolVersion { major: 3, minor: 3 },
         length: 0,
         data: vec![],
     };

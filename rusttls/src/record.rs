@@ -1,6 +1,7 @@
 #[repr(C)]
 pub struct TlsRecord {
     pub content_type: TlsContentType,
+    /// legacy_protocol_version
     pub protocol_version: TlsProtocolVersion,
     pub length: u16,
     pub data: Vec<u8>,
@@ -55,6 +56,12 @@ impl From<TlsContentType> for u8 {
 pub struct TlsProtocolVersion {
     pub major: u8,
     pub minor: u8,
+}
+
+impl TlsProtocolVersion {
+    pub fn tls1_2() -> Self {
+        TlsProtocolVersion { major: 3, minor: 3 }
+    }
 }
 
 #[cfg(test)]
