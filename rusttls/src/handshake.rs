@@ -24,6 +24,19 @@ impl TlsHandshake {
     }
 }
 
+#[repr(C)]
+#[derive(Clone)]
+pub enum CipherSuite {
+    TLS_AES_128_GCM_SHA256 = 0x1301,
+    TLS_AES_256_GCM_SHA384 = 0x1302,
+}
+
+impl From<CipherSuite> for u8 {
+    fn from(v: CipherSuite) -> Self {
+        v as u8
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
