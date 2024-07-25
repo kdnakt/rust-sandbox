@@ -1,13 +1,13 @@
 use crate::record::TlsProtocolVersion;
 
 pub enum TlsHandshake {
-    ClientHello(TlsProtocolVersion, [u8; 32], [u8; 32], Vec<CipherSuite>),
+    ClientHello(TlsProtocolVersion, [u8; 32], [u8; 32], Vec<CipherSuite>, Vec<Extension>),
 }
 
 impl TlsHandshake {
     pub fn as_bytes(&mut self) -> Vec<u8> {
         match self {
-            Self::ClientHello(version, random, legacy_session_id, cipher_suites) => {
+            Self::ClientHello(version, random, legacy_session_id, cipher_suites, extensions) => {
                 let mut vec: Vec<u8> = Vec::new();
                 vec.push(version.major);
                 vec.push(version.minor);
@@ -27,6 +27,20 @@ impl TlsHandshake {
                 // Compression methods
                 vec.push(1);
                 vec.push(0);
+                let extension_length = extensions.len() as u16;
+                vec.push((extension_length >> 8) as u8);
+                vec.push((extension_length & 0xff) as u8);
+                for e in extensions.into_iter() {
+                    let type_length = e.extension_type.clone() as u16;
+                    vec.push((type_length >> 8) as u8);
+                    vec.push((type_length & 0xff) as u8);
+                    let data_length = e.extension_data.len() as u16;
+                    vec.push((data_length >> 8) as u8);
+                    vec.push((data_length & 0xff) as u8);
+                    for v in e.extension_data.clone().into_iter() {
+                        vec.push(v);
+                    }
+                }
                 vec
             }
         }
@@ -44,6 +58,19 @@ impl From<CipherSuite> for u8 {
     fn from(v: CipherSuite) -> Self {
         v as u8
     }
+}
+
+#[derive(Clone)]
+pub struct Extension {
+    pub extension_type: ExtensionType,
+    pub extension_data: Vec<u8>,
+}
+
+#[derive(Clone)]
+pub enum ExtensionType {
+    ServerName = 0,
+    SupportedGroups = 10,
+    SignatureAlgorithms = 13,
 }
 
 #[cfg(test)]
@@ -65,8 +92,14 @@ mod tests {
             CipherSuite::TLS_AES_128_GCM_SHA256,
             CipherSuite::TLS_AES_256_GCM_SHA384,
         ];
+        let extensions = vec![
+            Extension {
+                extension_type: ExtensionType::ServerName,
+                extension_data: "localhost".into(),
+            },
+        ];
         let mut client_hello =
-            TlsHandshake::ClientHello(protocol_version, random, legacy_session_id, cipher_suites.clone());
+            TlsHandshake::ClientHello(protocol_version, random, legacy_session_id, cipher_suites.clone(), extensions.clone());
         let mut expected: Vec<u8> = vec![3, 3];
         expected.push(random.len().try_into().unwrap());
         for i in random.into_iter() {
@@ -84,6 +117,20 @@ mod tests {
         // Compression methods
         expected.push(1);
         expected.push(0);
+        let extension_length = extensions.len() as u16;
+        expected.push((extension_length >> 8) as u8);
+        expected.push((extension_length & 0xff) as u8);
+        for e in extensions.into_iter() {
+            let type_length = e.extension_type as u16;
+            expected.push((type_length >> 8) as u8);
+            expected.push((type_length & 0xff) as u8);
+            let data_length = e.extension_data.len() as u16;
+            expected.push((data_length >> 8) as u8);
+            expected.push((data_length & 0xff) as u8);
+            for v in e.extension_data.into_iter() {
+                expected.push(v);
+            }
+        }
 
         assert_eq!(expected, client_hello.as_bytes());
     }
