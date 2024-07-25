@@ -3,8 +3,8 @@ use std::net::TcpStream;
 
 use record::TlsRecord;
 
-mod record;
 mod handshake;
+mod record;
 
 fn main() -> std::io::Result<()> {
     println!("Hello, world!");
