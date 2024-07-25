@@ -24,6 +24,9 @@ impl TlsHandshake {
                 for c in cipher_suites.into_iter() {
                     vec.push(c.clone().into());
                 }
+                // Compression methods
+                vec.push(1);
+                vec.push(0);
                 vec
             }
         }
@@ -78,6 +81,9 @@ mod tests {
         for c in cipher_suites.into_iter() {
             expected.push(c.into());
         }
+        // Compression methods
+        expected.push(1);
+        expected.push(0);
 
         assert_eq!(expected, client_hello.as_bytes());
     }
