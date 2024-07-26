@@ -133,10 +133,7 @@ mod tests {
             0, 23,
             ];
         let extensions = vec![
-            Extension {
-                extension_type: ExtensionType::ServerName,
-                extension_data: "localhost".into(),
-            },
+            Extension::server_name("localhost".into()),
             Extension {
                 extension_type: ExtensionType::SupportedGroups,
                 extension_data: supported_groups,
