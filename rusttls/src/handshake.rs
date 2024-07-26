@@ -71,6 +71,8 @@ pub enum ExtensionType {
     ServerName = 0,
     SupportedGroups = 10,
     SignatureAlgorithms = 13,
+    SupportedVersions = 43,
+    KeyShare = 51,
 }
 
 #[cfg(test)]
@@ -92,11 +94,21 @@ mod tests {
             CipherSuite::TLS_AES_128_GCM_SHA256,
             CipherSuite::TLS_AES_256_GCM_SHA384,
         ];
+        let supported_groups = vec![0, 6, 0, 4,
+            // X25519
+            0, 29,
+            // secp256r1
+            0, 23,
+            ];
         let extensions = vec![
             Extension {
                 extension_type: ExtensionType::ServerName,
                 extension_data: "localhost".into(),
             },
+            Extension {
+                extension_type: ExtensionType::SupportedGroups,
+                extension_data: supported_groups,
+            }
         ];
         let mut client_hello =
             TlsHandshake::ClientHello(protocol_version, random, legacy_session_id, cipher_suites.clone(), extensions.clone());
