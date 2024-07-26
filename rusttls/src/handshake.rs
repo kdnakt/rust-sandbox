@@ -66,13 +66,45 @@ pub struct Extension {
     pub extension_data: Vec<u8>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum ExtensionType {
     ServerName = 0,
     SupportedGroups = 10,
     SignatureAlgorithms = 13,
     SupportedVersions = 43,
     KeyShare = 51,
+}
+
+impl Extension {
+    fn as_bytes(&mut self) -> Vec<u8> {
+        let mut vec: Vec<u8> = Vec::new();
+        vec.extend_from_slice(&convert(self.extension_type as u16));
+        vec.extend_from_slice(&convert(self.extension_data.len() as u16));
+        vec.append(&mut self.extension_data);
+        vec
+    }
+
+    fn server_name(hostname: String) -> Extension {
+        let mut data = Vec::new();
+        let hostname_len = hostname.len() as u16;
+        let list_len = hostname_len + 3;
+        data.extend_from_slice(&convert(list_len));
+        data.push(0); // DNS Hostname type
+        data.extend_from_slice(&convert(hostname_len));
+        for h in hostname.as_bytes() {
+            data.push(*h);
+        }
+        Extension {
+            extension_type: ExtensionType::ServerName,
+            extension_data: data,
+        }
+    }
+}
+
+fn convert(num: u16) -> [u8; 2] {
+    let lower = (num & 0xff) as u8;
+    let upper = (num >> 8) as u8;
+    [upper, lower]
 }
 
 #[cfg(test)]
@@ -145,5 +177,13 @@ mod tests {
         }
 
         assert_eq!(expected, client_hello.as_bytes());
+    }
+
+    #[test]
+    fn server_name_extension() {
+        let mut actual = Extension::server_name("example.ulfheim.net".to_string());
+        // cf: https://tls13.xargs.org/#client-hello/annotated
+        let expected = vec![0, 0, 0, 0x18, 0, 0x16, 0, 0, 0x13, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2e, 0x75, 0x6c, 0x66, 0x68, 0x65, 0x69, 0x6d, 0x2e, 0x6e, 0x65, 0x74];
+        assert_eq!(expected, actual.as_bytes());
     }
 }
