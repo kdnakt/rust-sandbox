@@ -1,7 +1,13 @@
 use crate::record::TlsProtocolVersion;
 
 pub enum TlsHandshake {
-    ClientHello(TlsProtocolVersion, [u8; 32], [u8; 32], Vec<CipherSuite>, Vec<Extension>),
+    ClientHello(
+        TlsProtocolVersion,
+        [u8; 32],
+        [u8; 32],
+        Vec<CipherSuite>,
+        Vec<Extension>,
+    ),
 }
 
 impl TlsHandshake {
@@ -106,11 +112,14 @@ impl Extension {
         for g in groups {
             data.extend_from_slice(&convert(g as u16));
         }
-        Extension { extension_type: ExtensionType::SupportedGroups, extension_data: data }
+        Extension {
+            extension_type: ExtensionType::SupportedGroups,
+            extension_data: data,
+        }
     }
 }
 
-enum SupportedGroup {
+pub enum SupportedGroup {
     X25519 = 0x001d,
     SECP256R1 = 0x0017,
 }
@@ -140,21 +149,17 @@ mod tests {
             CipherSuite::TLS_AES_128_GCM_SHA256,
             CipherSuite::TLS_AES_256_GCM_SHA384,
         ];
-        let supported_groups = vec![0, 6, 0, 4,
-            // X25519
-            0, 29,
-            // secp256r1
-            0, 23,
-            ];
         let extensions = vec![
             Extension::server_name("localhost".into()),
-            Extension {
-                extension_type: ExtensionType::SupportedGroups,
-                extension_data: supported_groups,
-            }
+            Extension::supported_groups(vec![SupportedGroup::X25519, SupportedGroup::SECP256R1]),
         ];
-        let mut client_hello =
-            TlsHandshake::ClientHello(protocol_version, random, legacy_session_id, cipher_suites.clone(), extensions.clone());
+        let mut client_hello = TlsHandshake::ClientHello(
+            protocol_version,
+            random,
+            legacy_session_id,
+            cipher_suites.clone(),
+            extensions.clone(),
+        );
         let mut expected: Vec<u8> = vec![3, 3];
         expected.push(random.len().try_into().unwrap());
         for i in random.into_iter() {
@@ -194,13 +199,17 @@ mod tests {
     fn server_name_extension() {
         let mut actual = Extension::server_name("example.ulfheim.net".to_string());
         // cf: https://tls13.xargs.org/#client-hello/annotated
-        let expected = vec![0, 0, 0, 0x18, 0, 0x16, 0, 0, 0x13, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2e, 0x75, 0x6c, 0x66, 0x68, 0x65, 0x69, 0x6d, 0x2e, 0x6e, 0x65, 0x74];
+        let expected = vec![
+            0, 0, 0, 0x18, 0, 0x16, 0, 0, 0x13, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2e,
+            0x75, 0x6c, 0x66, 0x68, 0x65, 0x69, 0x6d, 0x2e, 0x6e, 0x65, 0x74,
+        ];
         assert_eq!(expected, actual.as_bytes());
     }
 
     #[test]
     fn supported_groups() {
-        let mut actual = Extension::supported_groups(vec![SupportedGroup::X25519, SupportedGroup::SECP256R1]);
+        let mut actual =
+            Extension::supported_groups(vec![SupportedGroup::X25519, SupportedGroup::SECP256R1]);
         let expected = vec![0, 0x0a, 0, 6, 0, 4, 0, 0x1d, 0, 0x17];
         assert_eq!(expected, actual.as_bytes());
     }
