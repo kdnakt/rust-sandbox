@@ -137,6 +137,20 @@ impl Extension {
             extension_data: data,
         }
     }
+
+    fn key_share(group: SupportedGroup, public_key: Vec<u8>) -> Extension {
+        let mut data = Vec::new();
+        data.push(0);
+        data.push(0x24);
+        data.extend_from_slice(&convert(group as u16));
+        data.push(0);
+        data.push(0x20);
+        data.extend_from_slice(&public_key);
+        Extension {
+            extension_type: ExtensionType::KeyShare,
+            extension_data: data,
+        }
+    }
 }
 
 pub enum SupportedGroup {
@@ -254,6 +268,20 @@ mod tests {
     fn supported_versions() {
         let mut actual = Extension::supported_versions();
         let expected = vec![0, 0x2b, 0, 3, 2, 3, 4];
+        assert_eq!(expected, actual.as_bytes());
+    }
+
+    #[test]
+    fn key_share() {
+        // taken from: https://github.com/briansmith/ring/blob/main/src/ec/curve25519/x25519.rs#L217C26-L222C15
+        let public_key = vec![
+            0xde, 0x9e, 0xdb, 0x7d, 0x7b, 0x7d, 0xc1, 0xb4, 0xd3, 0x5b, 0x61, 0xc2, 0xec,
+            0xe4, 0x35, 0x37, 0x3f, 0x83, 0x43, 0xc8, 0x5b, 0x78, 0x67, 0x4d, 0xad, 0xfc,
+            0x7e, 0x14, 0x6f, 0x88, 0x2b, 0x4f,
+        ];
+        let mut actual = Extension::key_share(SupportedGroup::X25519, public_key.clone());
+        let mut expected = vec![0, 0x33, 0, 0x26, 0, 0x24, 0, 0x1d, 0, 0x20];
+        expected.extend_from_slice(&public_key);
         assert_eq!(expected, actual.as_bytes());
     }
 }
