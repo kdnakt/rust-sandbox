@@ -117,11 +117,29 @@ impl Extension {
             extension_data: data,
         }
     }
+
+    fn signature_algorithms(algorithms: Vec<SignatureAlgorithm>) -> Extension {
+        let mut data = Vec::new();
+        data.extend_from_slice(&convert((algorithms.len() * 2) as u16));
+        for a in algorithms {
+            data.extend_from_slice(&convert(a as u16));
+        }
+        Extension {
+            extension_type: ExtensionType::SignatureAlgorithms,
+            extension_data: data,
+        }
+    }
 }
 
 pub enum SupportedGroup {
     X25519 = 0x001d,
     SECP256R1 = 0x0017,
+}
+
+pub enum SignatureAlgorithm {
+    EcdsaSecp256r1Sha256 = 0x0403,
+    Ed25519 = 0x0807,
+    RsaPssPssSha256 = 0x0809,
 }
 
 fn convert(num: u16) -> [u8; 2] {
@@ -211,6 +229,16 @@ mod tests {
         let mut actual =
             Extension::supported_groups(vec![SupportedGroup::X25519, SupportedGroup::SECP256R1]);
         let expected = vec![0, 0x0a, 0, 6, 0, 4, 0, 0x1d, 0, 0x17];
+        assert_eq!(expected, actual.as_bytes());
+    }
+
+    #[test]
+    fn signature_algorithms() {
+        let mut actual = Extension::signature_algorithms(vec![
+            SignatureAlgorithm::EcdsaSecp256r1Sha256,
+            SignatureAlgorithm::Ed25519,
+        ]);
+        let expected = vec![0, 0x0d, 0, 6, 0, 4, 4, 3, 8, 7];
         assert_eq!(expected, actual.as_bytes());
     }
 }
