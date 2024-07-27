@@ -129,6 +129,14 @@ impl Extension {
             extension_data: data,
         }
     }
+
+    fn supported_versions() -> Extension {
+        let data = vec![2, 3, 4];
+        Extension {
+            extension_type: ExtensionType::SupportedVersions,
+            extension_data: data,
+        }
+    }
 }
 
 pub enum SupportedGroup {
@@ -239,6 +247,13 @@ mod tests {
             SignatureAlgorithm::Ed25519,
         ]);
         let expected = vec![0, 0x0d, 0, 6, 0, 4, 4, 3, 8, 7];
+        assert_eq!(expected, actual.as_bytes());
+    }
+
+    #[test]
+    fn supported_versions() {
+        let mut actual = Extension::supported_versions();
+        let expected = vec![0, 0x2b, 0, 3, 2, 3, 4];
         assert_eq!(expected, actual.as_bytes());
     }
 }
