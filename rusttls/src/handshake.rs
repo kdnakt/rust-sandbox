@@ -82,7 +82,7 @@ pub enum ExtensionType {
 }
 
 impl Extension {
-    fn as_bytes(&mut self) -> Vec<u8> {
+    pub fn as_bytes(&mut self) -> Vec<u8> {
         let mut vec: Vec<u8> = Vec::new();
         vec.extend_from_slice(&convert(self.extension_type as u16));
         vec.extend_from_slice(&convert(self.extension_data.len() as u16));
@@ -90,7 +90,7 @@ impl Extension {
         vec
     }
 
-    fn server_name(hostname: String) -> Extension {
+    pub fn server_name(hostname: String) -> Extension {
         let mut data = Vec::new();
         let hostname_len = hostname.len() as u16;
         let list_len = hostname_len + 3;
@@ -106,7 +106,7 @@ impl Extension {
         }
     }
 
-    fn supported_groups(groups: Vec<SupportedGroup>) -> Extension {
+    pub fn supported_groups(groups: Vec<SupportedGroup>) -> Extension {
         let mut data = Vec::new();
         data.extend_from_slice(&convert((groups.len() * 2) as u16));
         for g in groups {
@@ -118,7 +118,7 @@ impl Extension {
         }
     }
 
-    fn signature_algorithms(algorithms: Vec<SignatureAlgorithm>) -> Extension {
+    pub fn signature_algorithms(algorithms: Vec<SignatureAlgorithm>) -> Extension {
         let mut data = Vec::new();
         data.extend_from_slice(&convert((algorithms.len() * 2) as u16));
         for a in algorithms {
@@ -130,7 +130,7 @@ impl Extension {
         }
     }
 
-    fn supported_versions() -> Extension {
+    pub fn supported_versions() -> Extension {
         let data = vec![2, 3, 4];
         Extension {
             extension_type: ExtensionType::SupportedVersions,
@@ -138,7 +138,7 @@ impl Extension {
         }
     }
 
-    fn key_share(group: SupportedGroup, public_key: Vec<u8>) -> Extension {
+    pub fn key_share(group: SupportedGroup, public_key: Vec<u8>) -> Extension {
         let mut data = Vec::new();
         data.push(0);
         data.push(0x24);
