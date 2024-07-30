@@ -295,7 +295,7 @@ mod tests {
 
     #[test]
     fn ec_point_formats() {
-        let mut actual = Extension::ex_point_formats();
+        let mut actual = Extension::ec_point_formats();
         let expected = vec![0, 0xb, 0, 4, 3, 0, 1, 2];
         assert_eq!(expected, actual.as_bytes());
     }
