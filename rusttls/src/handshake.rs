@@ -17,10 +17,10 @@ impl TlsHandshake {
                 let mut vec: Vec<u8> = Vec::new();
                 vec.push(version.major);
                 vec.push(version.minor);
-                vec.push(random.len().try_into().unwrap());
                 for i in random.into_iter() {
                     vec.push(*i);
                 }
+                vec.push(legacy_session_id.len().try_into().unwrap());
                 for i in legacy_session_id.into_iter() {
                     vec.push(*i);
                 }
@@ -217,10 +217,10 @@ mod tests {
             extensions.clone(),
         );
         let mut expected: Vec<u8> = vec![1, 0, 0, 103, 3, 3];
-        expected.push(random.len().try_into().unwrap());
         for i in random.into_iter() {
             expected.push(i);
         }
+        expected.push(legacy_session_id.len().try_into().unwrap());
         for i in legacy_session_id.into_iter() {
             expected.push(i);
         }
