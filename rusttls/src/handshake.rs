@@ -76,6 +76,7 @@ pub struct Extension {
 pub enum ExtensionType {
     ServerName = 0,
     SupportedGroups = 10,
+    EcPointFormats = 11,
     SignatureAlgorithms = 13,
     SupportedVersions = 43,
     KeyShare = 51,
@@ -149,6 +150,13 @@ impl Extension {
         Extension {
             extension_type: ExtensionType::KeyShare,
             extension_data: data,
+        }
+    }
+
+    pub fn ec_point_formats() -> Extension {
+        Extension {
+            extension_type: ExtensionType::EcPointFormats,
+            extension_data: vec![3, 0, 1, 2],
         }
     }
 }
@@ -282,6 +290,13 @@ mod tests {
         let mut actual = Extension::key_share(SupportedGroup::X25519, public_key.clone());
         let mut expected = vec![0, 0x33, 0, 0x26, 0, 0x24, 0, 0x1d, 0, 0x20];
         expected.extend_from_slice(&public_key);
+        assert_eq!(expected, actual.as_bytes());
+    }
+
+    #[test]
+    fn ec_point_formats() {
+        let mut actual = Extension::ex_point_formats();
+        let expected = vec![0, 0xb, 0, 4, 3, 0, 1, 2];
         assert_eq!(expected, actual.as_bytes());
     }
 }
