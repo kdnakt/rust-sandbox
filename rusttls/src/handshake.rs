@@ -12,7 +12,7 @@ pub enum TlsHandshake {
 
 impl TlsHandshake {
     pub fn as_bytes(&mut self) -> Vec<u8> {
-        match self {
+        let handshake = match self {
             Self::ClientHello(version, random, legacy_session_id, cipher_suites, extensions) => {
                 let mut vec: Vec<u8> = Vec::new();
                 vec.push(version.major);
@@ -49,7 +49,15 @@ impl TlsHandshake {
                 }
                 vec
             }
-        }
+        };
+        let mut handshake_with_header = Vec::new();
+        handshake_with_header.push(match self {
+            TlsHandshake::ClientHello(_, _, _, _, _) => 1,
+        });
+        handshake_with_header.push(0);
+        handshake_with_header.extend_from_slice(&convert(handshake.len() as u16));
+        handshake_with_header.extend_from_slice(&handshake);
+        handshake_with_header
     }
 }
 
@@ -208,7 +216,7 @@ mod tests {
             cipher_suites.clone(),
             extensions.clone(),
         );
-        let mut expected: Vec<u8> = vec![3, 3];
+        let mut expected: Vec<u8> = vec![1, 0, 0, 103, 3, 3];
         expected.push(random.len().try_into().unwrap());
         for i in random.into_iter() {
             expected.push(i);
