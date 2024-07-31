@@ -24,8 +24,7 @@ impl TlsHandshake {
                 for i in legacy_session_id.into_iter() {
                     vec.push(*i);
                 }
-                vec.extend_from_slice(&convert(cipher_suites.len() as u16));
-                // FIXME
+                vec.extend_from_slice(&convert((cipher_suites.len() * 2) as u16));
                 for c in cipher_suites.into_iter() {
                     vec.extend_from_slice(&convert(c.clone() as u16));
                 }
@@ -223,7 +222,7 @@ mod tests {
         for i in legacy_session_id.into_iter() {
             expected.push(i);
         }
-        let cipher_suites_length = cipher_suites.len() as u16;
+        let cipher_suites_length = (cipher_suites.len() * 2) as u16;
         expected.push((cipher_suites_length >> 8) as u8);
         expected.push((cipher_suites_length & 0xFF) as u8);
         for c in cipher_suites.into_iter() {
