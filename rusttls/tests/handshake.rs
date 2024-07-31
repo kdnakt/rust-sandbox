@@ -9,7 +9,7 @@ use rusttls::{
 };
 
 #[test]
-fn client_hello() {
+fn ngx_client_hello() {
     let mut stream = TcpStream::connect("127.0.0.1:8443").expect("Failed to connect to server");
 
     let protocol_version = TlsProtocolVersion::tls1_2();
@@ -56,13 +56,14 @@ fn client_hello() {
         TlsProtocolVersion::tls1_2(),
         data,
     );
-    // println!("{:?}", record.as_bytes());
+    let bytes = record.as_bytes();
+    println!("write: {:?}", bytes);
     stream
-        .write(record.as_bytes().as_ref())
+        .write(bytes.as_ref())
         .expect("Failed to write record");
     let mut res = [0; 128];
     stream.read(&mut res).expect("Failed to read response");
-    println!("res: {:?}", res);
+    println!("read: {:?}", res);
 
     assert_eq!(record::TlsContentType::Handshake as u8, res[0]);
     assert_eq!(3, res[1]);
