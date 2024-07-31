@@ -4,7 +4,7 @@ use std::{
 };
 
 use rusttls::{
-    handshake::{CipherSuite, Extension, SignatureAlgorithm, SupportedGroup, TlsHandshake},
+    handshake::{self, CipherSuite, Extension, SignatureAlgorithm, SupportedGroup, TlsHandshake},
     record::{self, TlsProtocolVersion, TlsRecord},
 };
 
@@ -68,4 +68,6 @@ fn ngx_client_hello() {
     assert_eq!(record::TlsContentType::Handshake as u8, res[0]);
     assert_eq!(3, res[1]);
     assert_eq!(3, res[2]);
+    // ServerHello
+    assert_eq!(2, res[5]);
 }
