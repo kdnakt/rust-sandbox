@@ -31,20 +31,18 @@ impl TlsHandshake {
                 // Compression methods
                 vec.push(1);
                 vec.push(0);
-                let extension_length = extensions.len() as u16;
-                vec.push((extension_length >> 8) as u8);
-                vec.push((extension_length & 0xff) as u8);
+
+                let mut extensions_data = Vec::new();
                 for e in extensions.into_iter() {
-                    let type_length = e.extension_type.clone() as u16;
-                    vec.push((type_length >> 8) as u8);
-                    vec.push((type_length & 0xff) as u8);
-                    let data_length = e.extension_data.len() as u16;
-                    vec.push((data_length >> 8) as u8);
-                    vec.push((data_length & 0xff) as u8);
-                    for v in e.extension_data.clone().into_iter() {
-                        vec.push(v);
-                    }
+                    // Type
+                    extensions_data.extend_from_slice(&convert(e.extension_type as u16));
+                    // Length
+                    extensions_data.extend_from_slice(&convert(e.extension_data.len() as u16));
+                    // Value
+                    extensions_data.extend_from_slice(&e.extension_data);
                 }
+                vec.extend_from_slice(&convert(extensions_data.len() as u16));
+                vec.extend_from_slice(&extensions_data);
                 vec
             }
         };
@@ -231,20 +229,22 @@ mod tests {
         // Compression methods
         expected.push(1);
         expected.push(0);
-        let extension_length = extensions.len() as u16;
-        expected.push((extension_length >> 8) as u8);
-        expected.push((extension_length & 0xff) as u8);
+
+        let mut extensions_data = Vec::new();
         for e in extensions.into_iter() {
             let type_length = e.extension_type as u16;
-            expected.push((type_length >> 8) as u8);
-            expected.push((type_length & 0xff) as u8);
+            extensions_data.push((type_length >> 8) as u8);
+            extensions_data.push((type_length & 0xff) as u8);
             let data_length = e.extension_data.len() as u16;
-            expected.push((data_length >> 8) as u8);
-            expected.push((data_length & 0xff) as u8);
+            extensions_data.push((data_length >> 8) as u8);
+            extensions_data.push((data_length & 0xff) as u8);
+            // extend?
             for v in e.extension_data.into_iter() {
-                expected.push(v);
+                extensions_data.push(v);
             }
         }
+        expected.extend_from_slice(&convert(extensions_data.len() as u16));
+        expected.extend_from_slice(&extensions_data);
 
         assert_eq!(expected, client_hello.as_bytes());
     }
