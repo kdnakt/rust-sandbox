@@ -59,6 +59,9 @@ pub struct TlsProtocolVersion {
 }
 
 impl TlsProtocolVersion {
+    pub fn tls1_0() -> Self {
+        TlsProtocolVersion { major: 3, minor: 1 }
+    }
     pub fn tls1_2() -> Self {
         TlsProtocolVersion { major: 3, minor: 3 }
     }

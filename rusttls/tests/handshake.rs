@@ -53,7 +53,7 @@ fn ngx_client_hello() {
     let data = client_hello.as_bytes();
     let mut record = TlsRecord::new(
         record::TlsContentType::Handshake,
-        TlsProtocolVersion::tls1_2(),
+        TlsProtocolVersion::tls1_0(),
         data,
     );
     let bytes = record.as_bytes();
