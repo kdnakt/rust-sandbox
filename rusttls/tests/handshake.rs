@@ -4,7 +4,7 @@ use std::{
 };
 
 use rusttls::{
-    handshake::{self, CipherSuite, Extension, SignatureAlgorithm, SupportedGroup, TlsHandshake},
+    handshake::{CipherSuite, Extension, SignatureAlgorithm, SupportedGroup, TlsHandshake},
     record::{self, TlsProtocolVersion, TlsRecord},
 };
 

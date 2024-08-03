@@ -1,10 +1,18 @@
 use crate::record::TlsProtocolVersion;
 
+#[derive(Debug, PartialEq)]
 pub enum TlsHandshake {
     ClientHello(
         TlsProtocolVersion,
         [u8; 32],
         [u8; 32],
+        Vec<CipherSuite>,
+        Vec<Extension>,
+    ),
+    ServerHello(
+        TlsProtocolVersion,
+        [u8; 32], // Random
+        [u8; 32], // legacy session id echo
         Vec<CipherSuite>,
         Vec<Extension>,
     ),
@@ -45,20 +53,26 @@ impl TlsHandshake {
                 vec.extend_from_slice(&extensions_data);
                 vec
             }
+            _ => panic!("Not implemented"),
         };
         let mut handshake_with_header = Vec::new();
         handshake_with_header.push(match self {
             TlsHandshake::ClientHello(_, _, _, _, _) => 1,
+            _ => panic!("Not implemented"),
         });
         handshake_with_header.push(0);
         handshake_with_header.extend_from_slice(&convert(handshake.len() as u16));
         handshake_with_header.extend_from_slice(&handshake);
         handshake_with_header
     }
+
+    pub fn from_bytes(data: Vec<u8>) -> TlsHandshake {
+        todo!()
+    }
 }
 
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum CipherSuite {
     TLS_AES_128_GCM_SHA256 = 0x1301,
     TLS_AES_256_GCM_SHA384 = 0x1302,
@@ -70,13 +84,13 @@ impl From<CipherSuite> for u8 {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Extension {
     pub extension_type: ExtensionType,
     pub extension_data: Vec<u8>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ExtensionType {
     ServerName = 0,
     SupportedGroups = 10,
@@ -247,6 +261,69 @@ mod tests {
         expected.extend_from_slice(&extensions_data);
 
         assert_eq!(expected, client_hello.as_bytes());
+    }
+
+    #[test]
+    fn client_hello_from_bytes() {
+        let protocol_version = TlsProtocolVersion::tls1_2();
+        let random: [u8; 32] = [
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+            25, 26, 27, 28, 29, 30, 31, 32,
+        ];
+        let legacy_session_id: [u8; 32] = [
+            11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+            33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
+        ];
+        let cipher_suites = vec![
+            CipherSuite::TLS_AES_128_GCM_SHA256,
+            CipherSuite::TLS_AES_256_GCM_SHA384,
+        ];
+        let extensions = vec![
+            Extension::server_name("localhost".into()),
+            Extension::supported_groups(vec![SupportedGroup::X25519, SupportedGroup::SECP256R1]),
+        ];
+        let mut client_hello = TlsHandshake::ClientHello(
+            protocol_version,
+            random,
+            legacy_session_id,
+            cipher_suites.clone(),
+            extensions.clone(),
+        );
+        let mut client_hello_data: Vec<u8> = vec![1, 0, 0, 105, 3, 3];
+        for i in random.into_iter() {
+            client_hello_data.push(i);
+        }
+        client_hello_data.push(legacy_session_id.len().try_into().unwrap());
+        for i in legacy_session_id.into_iter() {
+            client_hello_data.push(i);
+        }
+        let cipher_suites_length = (cipher_suites.len() * 2) as u16;
+        client_hello_data.push((cipher_suites_length >> 8) as u8);
+        client_hello_data.push((cipher_suites_length & 0xFF) as u8);
+        for c in cipher_suites.into_iter() {
+            client_hello_data.extend_from_slice(&convert(c.clone() as u16));
+        }
+        // Compression methods
+        client_hello_data.push(1);
+        client_hello_data.push(0);
+
+        let mut extensions_data = Vec::new();
+        for e in extensions.into_iter() {
+            let type_length = e.extension_type as u16;
+            extensions_data.push((type_length >> 8) as u8);
+            extensions_data.push((type_length & 0xff) as u8);
+            let data_length = e.extension_data.len() as u16;
+            extensions_data.push((data_length >> 8) as u8);
+            extensions_data.push((data_length & 0xff) as u8);
+            // extend?
+            for v in e.extension_data.into_iter() {
+                extensions_data.push(v);
+            }
+        }
+        client_hello_data.extend_from_slice(&convert(extensions_data.len() as u16));
+        client_hello_data.extend_from_slice(&extensions_data);
+
+        assert_eq!(client_hello, TlsHandshake::from_bytes(client_hello_data));
     }
 
     #[test]

@@ -53,6 +53,7 @@ impl From<TlsContentType> for u8 {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct TlsProtocolVersion {
     pub major: u8,
     pub minor: u8,
