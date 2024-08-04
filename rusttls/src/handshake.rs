@@ -67,7 +67,31 @@ impl TlsHandshake {
     }
 
     pub fn from_bytes(data: Vec<u8>) -> TlsHandshake {
-        todo!()
+        match data[0] {
+            1 => {
+                let client_hello_len = ((data[1] as usize) << 16) + ((data[2] as usize) << 8) + (data[3] as usize);
+                let major = data[4];
+                let minor = data[5];
+                let version = TlsProtocolVersion { major, minor };
+                let random = [0; 32];
+                let session_id = [0; 32];
+                let cipher_suites = Vec::new();
+                let extensions = Vec::new();
+                TlsHandshake::ClientHello(version, random, session_id, cipher_suites, extensions)
+            },
+            2 => {
+                let server_hello_len = ((data[1] as usize) << 16) + ((data[2] as usize) << 8) + (data[3] as usize);
+                let major = data[4];
+                let minor = data[5];
+                let version = TlsProtocolVersion { major, minor };
+                let random = [0; 32];
+                let session_id = [0; 32];
+                let cipher_suites = Vec::new();
+                let extensions = Vec::new();
+                TlsHandshake::ServerHello(version, random, session_id, cipher_suites, extensions)
+            },
+            _ => panic!("Unexpected Handshake Type"),
+        }
     }
 }
 
@@ -282,7 +306,7 @@ mod tests {
             Extension::server_name("localhost".into()),
             Extension::supported_groups(vec![SupportedGroup::X25519, SupportedGroup::SECP256R1]),
         ];
-        let mut client_hello = TlsHandshake::ClientHello(
+        let client_hello = TlsHandshake::ClientHello(
             protocol_version,
             random,
             legacy_session_id,
