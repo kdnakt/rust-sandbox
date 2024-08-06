@@ -76,7 +76,13 @@ impl TlsHandshake {
                 let random = data[6..38].try_into().expect("Failed to read random.");
                 let session_id_end = (data[38] + 39) as usize;
                 let session_id = data[39..session_id_end].try_into().expect("Failed to read session_id");
-                let cipher_suites = Vec::new();
+                let cipher_suites_len = ((data[session_id_end] as usize) << 8) + (data[session_id_end+1] as usize);
+                let mut cipher_suites = Vec::new();
+                let cipher_suites_start = session_id_end + 2;
+                for i in (cipher_suites_start..(cipher_suites_start + cipher_suites_len)).step_by(2) {
+                    let raw_cipher_suite = ((data[i] as usize) << 8) + (data[i + 1] as usize);
+                    cipher_suites.push(raw_cipher_suite.into());
+                }
                 let extensions = Vec::new();
                 TlsHandshake::ClientHello(version, random, session_id, cipher_suites, extensions)
             },
@@ -106,6 +112,16 @@ pub enum CipherSuite {
 impl From<CipherSuite> for u8 {
     fn from(v: CipherSuite) -> Self {
         v as u8
+    }
+}
+
+impl From<usize> for CipherSuite {
+    fn from(v: usize) -> Self {
+        match v {
+            0x1301 => CipherSuite::TLS_AES_128_GCM_SHA256,
+            0x1302 => CipherSuite::TLS_AES_256_GCM_SHA384,
+            _ => panic!("Unknown cipher suite: {}", v),
+        }
     }
 }
 
