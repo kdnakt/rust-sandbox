@@ -67,25 +67,26 @@ impl TlsHandshake {
     }
 
     pub fn from_bytes(data: Vec<u8>) -> TlsHandshake {
+        let handshake_len = ((data[1] as usize) << 16) + ((data[2] as usize) << 8) + (data[3] as usize);
         match data[0] {
             1 => {
-                let client_hello_len = ((data[1] as usize) << 16) + ((data[2] as usize) << 8) + (data[3] as usize);
                 let major = data[4];
                 let minor = data[5];
                 let version = TlsProtocolVersion { major, minor };
-                let random = [0; 32];
-                let session_id = [0; 32];
+                let random = data[6..38].try_into().expect("Failed to read random.");
+                let session_id_end = (data[38] + 39) as usize;
+                let session_id = data[39..session_id_end].try_into().expect("Failed to read session_id");
                 let cipher_suites = Vec::new();
                 let extensions = Vec::new();
                 TlsHandshake::ClientHello(version, random, session_id, cipher_suites, extensions)
             },
             2 => {
-                let server_hello_len = ((data[1] as usize) << 16) + ((data[2] as usize) << 8) + (data[3] as usize);
                 let major = data[4];
                 let minor = data[5];
                 let version = TlsProtocolVersion { major, minor };
-                let random = [0; 32];
-                let session_id = [0; 32];
+                let random = data[6..38].try_into().expect("Failed to read random.");
+                let session_id_end = (data[38] + 39) as usize;
+                let session_id = data[39..session_id_end].try_into().expect("Failed to read session_id");
                 let cipher_suites = Vec::new();
                 let extensions = Vec::new();
                 TlsHandshake::ServerHello(version, random, session_id, cipher_suites, extensions)
