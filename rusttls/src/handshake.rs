@@ -84,6 +84,9 @@ impl TlsHandshake {
                     cipher_suites.push(raw_cipher_suite.into());
                 }
                 let extensions = Vec::new();
+                let mut extensions_start = cipher_suites_start + 2 /* compression methods ignored */ + cipher_suites_len;
+                let extensions_len = ((data[extensions_start] as usize) << 8) + (data[extensions_start + 1] as usize);
+                extensions_start += 2;
                 TlsHandshake::ClientHello(version, random, session_id, cipher_suites, extensions)
             },
             2 => {
