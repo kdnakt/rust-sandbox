@@ -1,3 +1,4 @@
+
 use crate::record::TlsProtocolVersion;
 
 #[derive(Debug, PartialEq)]
@@ -83,10 +84,18 @@ impl TlsHandshake {
                     let raw_cipher_suite = ((data[i] as usize) << 8) + (data[i + 1] as usize);
                     cipher_suites.push(raw_cipher_suite.into());
                 }
-                let extensions = Vec::new();
-                let mut extensions_start = cipher_suites_start + 2 /* compression methods ignored */ + cipher_suites_len;
+                let mut extensions = Vec::new();
+                let extensions_start = cipher_suites_start + 2 /* compression methods ignored */ + cipher_suites_len;
                 let extensions_len = ((data[extensions_start] as usize) << 8) + (data[extensions_start + 1] as usize);
-                extensions_start += 2;
+                let mut index = extensions_start + 2;
+                let extension_end = index + extensions_len;
+                while index < extension_end {
+                    let extension_type = ((data[index] as usize) << 8) + (data[index + 1] as usize);
+                    let ext_len = ((data[index + 2] as usize) << 8) + (data[index + 3] as usize);
+                    let ext_value = data[(index + 4)..(index + 4 + ext_len)].into_iter();
+                    extensions.push(Extension::from_bytes(extension_type, ext_value));
+                    index += 4 + ext_len;
+                }
                 TlsHandshake::ClientHello(version, random, session_id, cipher_suites, extensions)
             },
             2 => {
@@ -160,6 +169,10 @@ impl Extension {
         vec.extend_from_slice(&convert(self.extension_data.len() as u16));
         vec.append(&mut self.extension_data);
         vec
+    }
+
+    pub fn from_bytes(extension_type: usize, data: core::slice::Iter<u8>) -> Extension {
+        todo!()
     }
 
     pub fn server_name(hostname: String) -> Extension {
