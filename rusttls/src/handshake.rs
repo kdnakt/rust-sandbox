@@ -172,7 +172,12 @@ impl Extension {
     }
 
     pub fn from_bytes(extension_type: usize, data: core::slice::Iter<u8>) -> Extension {
-        todo!()
+        match extension_type {
+            0 => {
+                Extension { extension_type: ExtensionType::ServerName, extension_data: data.cloned().collect() }
+            },
+            _ => todo!(),
+        }
     }
 
     pub fn server_name(hostname: String) -> Extension {
@@ -400,7 +405,8 @@ mod tests {
             0, 0, 0, 0x18, 0, 0x16, 0, 0, 0x13, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2e,
             0x75, 0x6c, 0x66, 0x68, 0x65, 0x69, 0x6d, 0x2e, 0x6e, 0x65, 0x74,
         ];
-        assert_eq!(expected, actual.as_bytes());
+        assert_eq!(expected, actual.clone().as_bytes());
+        assert_eq!(actual, Extension::from_bytes(0, expected[4..].into_iter()));
     }
 
     #[test]
