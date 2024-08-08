@@ -1,4 +1,3 @@
-
 use crate::record::TlsProtocolVersion;
 
 #[derive(Debug, PartialEq)]
@@ -68,7 +67,8 @@ impl TlsHandshake {
     }
 
     pub fn from_bytes(data: Vec<u8>) -> TlsHandshake {
-        let handshake_len = ((data[1] as usize) << 16) + ((data[2] as usize) << 8) + (data[3] as usize);
+        let handshake_len =
+            ((data[1] as usize) << 16) + ((data[2] as usize) << 8) + (data[3] as usize);
         match data[0] {
             1 => {
                 let major = data[4];
@@ -76,17 +76,23 @@ impl TlsHandshake {
                 let version = TlsProtocolVersion { major, minor };
                 let random = data[6..38].try_into().expect("Failed to read random.");
                 let session_id_end = (data[38] + 39) as usize;
-                let session_id = data[39..session_id_end].try_into().expect("Failed to read session_id");
-                let cipher_suites_len = ((data[session_id_end] as usize) << 8) + (data[session_id_end+1] as usize);
+                let session_id = data[39..session_id_end]
+                    .try_into()
+                    .expect("Failed to read session_id");
+                let cipher_suites_len =
+                    ((data[session_id_end] as usize) << 8) + (data[session_id_end + 1] as usize);
                 let mut cipher_suites = Vec::new();
                 let cipher_suites_start = session_id_end + 2;
-                for i in (cipher_suites_start..(cipher_suites_start + cipher_suites_len)).step_by(2) {
+                for i in (cipher_suites_start..(cipher_suites_start + cipher_suites_len)).step_by(2)
+                {
                     let raw_cipher_suite = ((data[i] as usize) << 8) + (data[i + 1] as usize);
                     cipher_suites.push(raw_cipher_suite.into());
                 }
                 let mut extensions = Vec::new();
-                let extensions_start = cipher_suites_start + 2 /* compression methods ignored */ + cipher_suites_len;
-                let extensions_len = ((data[extensions_start] as usize) << 8) + (data[extensions_start + 1] as usize);
+                let extensions_start =
+                    cipher_suites_start + 2 /* compression methods ignored */ + cipher_suites_len;
+                let extensions_len = ((data[extensions_start] as usize) << 8)
+                    + (data[extensions_start + 1] as usize);
                 let mut index = extensions_start + 2;
                 let extension_end = index + extensions_len;
                 while index < extension_end {
@@ -97,27 +103,33 @@ impl TlsHandshake {
                     index += 4 + ext_len;
                 }
                 TlsHandshake::ClientHello(version, random, session_id, cipher_suites, extensions)
-            },
+            }
             2 => {
                 let major = data[4];
                 let minor = data[5];
                 let version = TlsProtocolVersion { major, minor };
                 let random = data[6..38].try_into().expect("Failed to read random.");
                 let session_id_end = (data[38] + 39) as usize;
-                let session_id = data[39..session_id_end].try_into().expect("Failed to read session_id");
-                let cipher_suites_len = ((data[session_id_end] as usize) << 8) + (data[session_id_end+1] as usize);
+                let session_id = data[39..session_id_end]
+                    .try_into()
+                    .expect("Failed to read session_id");
+                let cipher_suites_len =
+                    ((data[session_id_end] as usize) << 8) + (data[session_id_end + 1] as usize);
                 let mut cipher_suites = Vec::new();
                 let cipher_suites_start = session_id_end + 2;
-                for i in (cipher_suites_start..(cipher_suites_start + cipher_suites_len)).step_by(2) {
+                for i in (cipher_suites_start..(cipher_suites_start + cipher_suites_len)).step_by(2)
+                {
                     let raw_cipher_suite = ((data[i] as usize) << 8) + (data[i + 1] as usize);
                     cipher_suites.push(raw_cipher_suite.into());
                 }
                 let extensions = Vec::new();
-                let mut extensions_start = cipher_suites_start + 2 /* compression methods ignored */ + cipher_suites_len;
-                let extensions_len = ((data[extensions_start] as usize) << 8) + (data[extensions_start + 1] as usize);
+                let mut extensions_start =
+                    cipher_suites_start + 2 /* compression methods ignored */ + cipher_suites_len;
+                let extensions_len = ((data[extensions_start] as usize) << 8)
+                    + (data[extensions_start + 1] as usize);
                 extensions_start += 2;
                 TlsHandshake::ServerHello(version, random, session_id, cipher_suites, extensions)
-            },
+            }
             _ => panic!("Unexpected Handshake Type"),
         }
     }
@@ -172,11 +184,14 @@ impl Extension {
     }
 
     pub fn from_bytes(extension_type: usize, data: core::slice::Iter<u8>) -> Extension {
-        match extension_type {
-            0 => {
-                Extension { extension_type: ExtensionType::ServerName, extension_data: data.cloned().collect() }
-            },
+        let t = match extension_type {
+            0 => ExtensionType::ServerName,
+            0x0a => ExtensionType::SupportedGroups,
             _ => todo!(),
+        };
+        Extension {
+            extension_type: t,
+            extension_data: data.cloned().collect(),
         }
     }
 
@@ -194,6 +209,19 @@ impl Extension {
             extension_type: ExtensionType::ServerName,
             extension_data: data,
         }
+    }
+
+    pub fn server_name_value(e: Extension) -> String {
+        if e.extension_data[2] != 0 {
+            // DNS Hostname type
+            panic!("Unsupported server name type: {}", e.extension_data[2]);
+        }
+        let raw_data = &e.extension_data[5..];
+        let hostname_len = ((e.extension_data[3] as usize) << 8) + e.extension_data[4] as usize;
+        if raw_data.len() != hostname_len {
+            panic!("Unexpected host name length")
+        }
+        String::from_utf8_lossy(raw_data).to_string()
     }
 
     pub fn supported_groups(groups: Vec<SupportedGroup>) -> Extension {
@@ -250,6 +278,7 @@ impl Extension {
     }
 }
 
+#[derive(Clone)]
 pub enum SupportedGroup {
     X25519 = 0x001d,
     SECP256R1 = 0x0017,
@@ -399,22 +428,27 @@ mod tests {
 
     #[test]
     fn server_name_extension() {
-        let mut actual = Extension::server_name("example.ulfheim.net".to_string());
+        let hostname = "example.ulfheim.net".to_string();
+        let actual = Extension::server_name(hostname.clone());
         // cf: https://tls13.xargs.org/#client-hello/annotated
         let expected = vec![
             0, 0, 0, 0x18, 0, 0x16, 0, 0, 0x13, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2e,
             0x75, 0x6c, 0x66, 0x68, 0x65, 0x69, 0x6d, 0x2e, 0x6e, 0x65, 0x74,
         ];
         assert_eq!(expected, actual.clone().as_bytes());
-        assert_eq!(actual, Extension::from_bytes(0, expected[4..].into_iter()));
+        let extension_obj = Extension::from_bytes(0, expected[4..].into_iter());
+        assert_eq!(actual, extension_obj);
+        assert_eq!(hostname, Extension::server_name_value(extension_obj));
     }
 
     #[test]
     fn supported_groups() {
-        let mut actual =
-            Extension::supported_groups(vec![SupportedGroup::X25519, SupportedGroup::SECP256R1]);
+        let groups = vec![SupportedGroup::X25519, SupportedGroup::SECP256R1];
+        let actual = Extension::supported_groups(groups.clone());
         let expected = vec![0, 0x0a, 0, 6, 0, 4, 0, 0x1d, 0, 0x17];
-        assert_eq!(expected, actual.as_bytes());
+        assert_eq!(expected, actual.clone().as_bytes());
+        let extension = Extension::from_bytes(0x0a as usize, expected[4..].into_iter());
+        assert_eq!(actual, extension);
     }
 
     #[test]
