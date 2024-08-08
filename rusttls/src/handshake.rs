@@ -236,6 +236,15 @@ impl Extension {
         }
     }
 
+    pub fn supported_groups_value(e: Extension) -> Vec<SupportedGroup> {
+        let mut res = Vec::new();
+        for i in (2..(e.extension_data.len() - 1)).step_by(2) {
+            let v = ((e.extension_data[i] as u16) << 8) + (e.extension_data[i+1] as u16);
+            res.push(v.into());
+        }
+        res
+    }
+
     pub fn signature_algorithms(algorithms: Vec<SignatureAlgorithm>) -> Extension {
         let mut data = Vec::new();
         data.extend_from_slice(&convert((algorithms.len() * 2) as u16));
@@ -278,10 +287,20 @@ impl Extension {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum SupportedGroup {
     X25519 = 0x001d,
     SECP256R1 = 0x0017,
+}
+
+impl From<u16> for SupportedGroup {
+    fn from(value: u16) -> Self {
+        match value {
+            0x001d => SupportedGroup::X25519,
+            0x0017 => SupportedGroup::SECP256R1,
+            _ => panic!("not implemented"),
+        }
+    }
 }
 
 pub enum SignatureAlgorithm {
@@ -449,6 +468,7 @@ mod tests {
         assert_eq!(expected, actual.clone().as_bytes());
         let extension = Extension::from_bytes(0x0a as usize, expected[4..].into_iter());
         assert_eq!(actual, extension);
+        assert_eq!(groups, Extension::supported_groups_value(extension));
     }
 
     #[test]
