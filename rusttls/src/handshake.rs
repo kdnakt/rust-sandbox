@@ -187,6 +187,7 @@ impl Extension {
         let t = match extension_type {
             0 => ExtensionType::ServerName,
             0x0a => ExtensionType::SupportedGroups,
+            0x0d => ExtensionType::SignatureAlgorithms,
             _ => todo!(),
         };
         Extension {
@@ -257,6 +258,15 @@ impl Extension {
         }
     }
 
+    pub fn signature_algorithms_value(e: Extension) -> Vec<SignatureAlgorithm> {
+        let mut res = Vec::new();
+        for i in (2..(e.extension_data.len() - 1)).step_by(2) {
+            let v = ((e.extension_data[i] as u16) << 8) + (e.extension_data[i+1] as u16);
+            res.push(v.into());
+        }
+        res
+    }
+
     pub fn supported_versions() -> Extension {
         let data = vec![2, 3, 4];
         Extension {
@@ -303,10 +313,22 @@ impl From<u16> for SupportedGroup {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub enum SignatureAlgorithm {
     EcdsaSecp256r1Sha256 = 0x0403,
     Ed25519 = 0x0807,
     RsaPssPssSha256 = 0x0809,
+}
+
+impl From<u16> for SignatureAlgorithm {
+    fn from(value: u16) -> Self {
+        match value {
+            0x0403 => SignatureAlgorithm::EcdsaSecp256r1Sha256,
+            0x0807 => SignatureAlgorithm::Ed25519,
+            0x0809 => SignatureAlgorithm::RsaPssPssSha256,
+            _ => panic!("Unknown signature algorithm: {}", value),
+        }
+    }
 }
 
 fn convert(num: u16) -> [u8; 2] {
@@ -473,12 +495,16 @@ mod tests {
 
     #[test]
     fn signature_algorithms() {
-        let mut actual = Extension::signature_algorithms(vec![
+        let algos = vec![
             SignatureAlgorithm::EcdsaSecp256r1Sha256,
             SignatureAlgorithm::Ed25519,
-        ]);
+        ];
+        let actual = Extension::signature_algorithms(algos.clone());
         let expected = vec![0, 0x0d, 0, 6, 0, 4, 4, 3, 8, 7];
-        assert_eq!(expected, actual.as_bytes());
+        assert_eq!(expected, actual.clone().as_bytes());
+        let ext = Extension::from_bytes(0x0d, expected[4..].into_iter());
+        assert_eq!(actual, ext);
+        assert_eq!(algos, Extension::signature_algorithms_value(ext));
     }
 
     #[test]
