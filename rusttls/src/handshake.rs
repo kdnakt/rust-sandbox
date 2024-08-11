@@ -189,6 +189,7 @@ impl Extension {
             0x0a => ExtensionType::SupportedGroups,
             0x0d => ExtensionType::SignatureAlgorithms,
             0x2b => ExtensionType::SupportedVersions,
+            0x33 => ExtensionType::KeyShare,
             _ => todo!(),
         };
         Extension {
@@ -298,6 +299,12 @@ impl Extension {
             extension_type: ExtensionType::KeyShare,
             extension_data: data,
         }
+    }
+
+    pub fn key_share_value(e: Extension) -> (SupportedGroup, Vec<u8>) {
+        let key_len = ((e.extension_data[4] as usize) << 8) + (e.extension_data[5] as usize);
+        let group = ((e.extension_data[2] as u16) << 8) + (e.extension_data[3] as u16);
+        (group.into(), e.extension_data[6..(6 + key_len)].to_vec())
     }
 
     pub fn ec_point_formats() -> Extension {
@@ -536,10 +543,15 @@ mod tests {
             0x35, 0x37, 0x3f, 0x83, 0x43, 0xc8, 0x5b, 0x78, 0x67, 0x4d, 0xad, 0xfc, 0x7e, 0x14,
             0x6f, 0x88, 0x2b, 0x4f,
         ];
-        let mut actual = Extension::key_share(SupportedGroup::X25519, public_key.clone());
+        let actual = Extension::key_share(SupportedGroup::X25519, public_key.clone());
         let mut expected = vec![0, 0x33, 0, 0x26, 0, 0x24, 0, 0x1d, 0, 0x20];
         expected.extend_from_slice(&public_key);
-        assert_eq!(expected, actual.as_bytes());
+        assert_eq!(expected, actual.clone().as_bytes());
+        let ext = Extension::from_bytes(0x33, expected[4..].into_iter());
+        assert_eq!(actual, ext);
+        let key_share = Extension::key_share_value(ext);
+        assert_eq!(SupportedGroup::X25519, key_share.0);
+        assert_eq!(public_key, key_share.1);
     }
 
     #[test]
