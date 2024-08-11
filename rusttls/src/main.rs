@@ -45,7 +45,7 @@ fn main() -> std::io::Result<()> {
     };
     println!("{:?}", record.as_bytes());
     stream.write(record.as_bytes().as_ref())?;
-    let mut res = [9; 128];
+    let mut res = [9; 16384];
     stream.read(&mut res)?;
     println!("response: {:?}", res);
     Ok(())

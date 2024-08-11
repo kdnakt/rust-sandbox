@@ -61,7 +61,7 @@ fn ngx_client_hello() {
     stream
         .write(bytes.as_ref())
         .expect("Failed to write record");
-    let mut res = [0; 128];
+    let mut res = [0; 16384];
     stream.read(&mut res).expect("Failed to read response");
     println!("read: {:?}", res);
 
@@ -70,4 +70,10 @@ fn ngx_client_hello() {
     assert_eq!(3, res[2]);
     // ServerHello
     assert_eq!(2, res[5]);
+    let len = ((res[3] as usize) << 8) + (res[4] as usize);
+    if let TlsHandshake::ServerHello(version, _, _, _, _) = TlsHandshake::from_bytes(res[5..(5+len)].to_vec()) {
+        assert_eq!(TlsProtocolVersion::tls1_2(), version);
+    } else {
+        panic!("not a server hello");
+    }
 }
