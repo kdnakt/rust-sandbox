@@ -66,6 +66,9 @@ impl TlsProtocolVersion {
     pub fn tls1_2() -> Self {
         TlsProtocolVersion { major: 3, minor: 3 }
     }
+    pub fn tls1_3() -> Self {
+        TlsProtocolVersion { major: 3, minor: 4 }
+    }
 }
 
 #[cfg(test)]

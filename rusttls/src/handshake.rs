@@ -188,6 +188,7 @@ impl Extension {
             0 => ExtensionType::ServerName,
             0x0a => ExtensionType::SupportedGroups,
             0x0d => ExtensionType::SignatureAlgorithms,
+            0x2b => ExtensionType::SupportedVersions,
             _ => todo!(),
         };
         Extension {
@@ -273,6 +274,16 @@ impl Extension {
             extension_type: ExtensionType::SupportedVersions,
             extension_data: data,
         }
+    }
+
+    pub fn supported_versions_value(e: Extension) -> Vec<TlsProtocolVersion> {
+        let mut res = Vec::new();
+        for i in (1..(e.extension_data.len() - 1)).step_by(2) {
+            let major = e.extension_data[i];
+            let minor = e.extension_data[i+1];
+            res.push(TlsProtocolVersion { major, minor });
+        }
+        res
     }
 
     pub fn key_share(group: SupportedGroup, public_key: Vec<u8>) -> Extension {
@@ -509,9 +520,12 @@ mod tests {
 
     #[test]
     fn supported_versions() {
-        let mut actual = Extension::supported_versions();
+        let actual = Extension::supported_versions();
         let expected = vec![0, 0x2b, 0, 3, 2, 3, 4];
-        assert_eq!(expected, actual.as_bytes());
+        assert_eq!(expected, actual.clone().as_bytes());
+        let ext = Extension::from_bytes(0x2b, expected[4..].into_iter());
+        assert_eq!(actual, ext);
+        assert_eq!(vec![TlsProtocolVersion::tls1_3()], Extension::supported_versions_value(ext));
     }
 
     #[test]
