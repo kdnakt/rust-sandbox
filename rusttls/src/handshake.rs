@@ -113,14 +113,23 @@ impl TlsHandshake {
                 let session_id = data[39..session_id_end]
                     .try_into()
                     .expect("Failed to read session_id");
-                let cipher_suite =
-                    (((data[session_id_end] as usize) << 8) + (data[session_id_end + 1] as usize)).into();
-                let extensions = Vec::new();
-                let mut extensions_start =
+                let cipher_suite = (((data[session_id_end] as usize) << 8)
+                    + (data[session_id_end + 1] as usize))
+                    .into();
+                let mut extensions = Vec::new();
+                let extensions_start =
                     session_id_end + 3 /* compression methods ignored */;
                 let extensions_len = ((data[extensions_start] as usize) << 8)
                     + (data[extensions_start + 1] as usize);
-                extensions_start += 2;
+                let mut index = extensions_start + 2;
+                let extension_end = index + extensions_len;
+                while index < extension_end {
+                    let extension_type = ((data[index] as usize) << 8) + (data[index + 1] as usize);
+                    let ext_len = ((data[index + 2] as usize) << 8) + (data[index + 3] as usize);
+                    let ext_value = data[(index + 4)..(index + 4 + ext_len)].into_iter();
+                    extensions.push(Extension::from_bytes(extension_type, ext_value));
+                    index += 4 + ext_len;
+                }
                 TlsHandshake::ServerHello(version, random, session_id, cipher_suite, extensions)
             }
             _ => panic!("Unexpected Handshake Type"),
@@ -235,7 +244,7 @@ impl Extension {
     pub fn supported_groups_value(e: Extension) -> Vec<SupportedGroup> {
         let mut res = Vec::new();
         for i in (2..(e.extension_data.len() - 1)).step_by(2) {
-            let v = ((e.extension_data[i] as u16) << 8) + (e.extension_data[i+1] as u16);
+            let v = ((e.extension_data[i] as u16) << 8) + (e.extension_data[i + 1] as u16);
             res.push(v.into());
         }
         res
@@ -256,7 +265,7 @@ impl Extension {
     pub fn signature_algorithms_value(e: Extension) -> Vec<SignatureAlgorithm> {
         let mut res = Vec::new();
         for i in (2..(e.extension_data.len() - 1)).step_by(2) {
-            let v = ((e.extension_data[i] as u16) << 8) + (e.extension_data[i+1] as u16);
+            let v = ((e.extension_data[i] as u16) << 8) + (e.extension_data[i + 1] as u16);
             res.push(v.into());
         }
         res
@@ -271,10 +280,17 @@ impl Extension {
     }
 
     pub fn supported_versions_value(e: Extension) -> Vec<TlsProtocolVersion> {
+        let start = if e.extension_data[0] == 3 {
+            // server
+            0
+        } else {
+            // client
+            1
+        };
         let mut res = Vec::new();
-        for i in (1..(e.extension_data.len() - 1)).step_by(2) {
+        for i in (start..(e.extension_data.len() - 1)).step_by(2) {
             let major = e.extension_data[i];
-            let minor = e.extension_data[i+1];
+            let minor = e.extension_data[i + 1];
             res.push(TlsProtocolVersion { major, minor });
         }
         res
@@ -519,13 +535,32 @@ mod tests {
     }
 
     #[test]
-    fn supported_versions() {
+    fn supported_versions_client() {
         let actual = Extension::supported_versions();
         let expected = vec![0, 0x2b, 0, 3, 2, 3, 4];
         assert_eq!(expected, actual.clone().as_bytes());
         let ext = Extension::from_bytes(0x2b, expected[4..].into_iter());
         assert_eq!(actual, ext);
-        assert_eq!(vec![TlsProtocolVersion::tls1_3()], Extension::supported_versions_value(ext));
+        assert_eq!(
+            vec![TlsProtocolVersion::tls1_3()],
+            Extension::supported_versions_value(ext)
+        );
+    }
+
+    #[test]
+    fn supported_versions_server() {
+        let actual = Extension {
+            extension_type: ExtensionType::SupportedVersions,
+            extension_data: vec![3, 4],
+        };
+        let expected = vec![0, 0x2b, 0, 2, 3, 4];
+        assert_eq!(expected, actual.clone().as_bytes());
+        let ext = Extension::from_bytes(0x2b, expected[4..].into_iter());
+        assert_eq!(actual, ext);
+        assert_eq!(
+            vec![TlsProtocolVersion::tls1_3()],
+            Extension::supported_versions_value(ext)
+        );
     }
 
     #[test]
