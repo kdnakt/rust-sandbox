@@ -101,10 +101,12 @@ fn ngx_client_hello() {
             .first()
             .unwrap()
         );
-        let key_share = Extension::key_share_server_value(
-            server_extensions.iter().find(|e| e.extension_type == ExtensionType::KeyShare)
-            .unwrap().clone()
-        );
+        let key_share = server_extensions
+            .iter()
+            .find(|e| e.extension_type == ExtensionType::KeyShare)
+            .unwrap()
+            .clone()
+            .key_share_server_value();
         assert_eq!(SupportedGroup::X25519, key_share.0);
     } else {
         panic!("not a server hello");

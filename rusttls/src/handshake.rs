@@ -320,16 +320,23 @@ impl Extension {
         }
     }
 
-    pub fn key_share_client_value(e: Extension) -> (SupportedGroup, Vec<u8>) {
-        let key_len = ((e.extension_data[4] as usize) << 8) + (e.extension_data[5] as usize);
-        let group = ((e.extension_data[2] as u16) << 8) + (e.extension_data[3] as u16);
-        (group.into(), e.extension_data[6..(6 + key_len)].to_vec())
+    pub fn key_share_client_value(&self) -> (SupportedGroup, Vec<u8>) {
+        self.key_share_value(2)
     }
 
-    pub fn key_share_server_value(e: Extension) -> (SupportedGroup, Vec<u8>) {
-        let key_len = ((e.extension_data[2] as usize) << 8) + (e.extension_data[3] as usize);
-        let group = ((e.extension_data[0] as u16) << 8) + (e.extension_data[1] as u16);
-        (group.into(), e.extension_data[4..(4 + key_len)].to_vec())
+    pub fn key_share_server_value(&self) -> (SupportedGroup, Vec<u8>) {
+        self.key_share_value(0)
+    }
+
+    fn key_share_value(&self, index: usize) -> (SupportedGroup, Vec<u8>) {
+        let key_len = ((self.extension_data[index + 2] as usize) << 8)
+            + (self.extension_data[index + 3] as usize);
+        let group =
+            ((self.extension_data[index] as u16) << 8) + (self.extension_data[index + 1] as u16);
+        (
+            group.into(),
+            self.extension_data[(index + 4)..(index + 4 + key_len)].to_vec(),
+        )
     }
 
     pub fn ec_point_formats() -> Extension {
@@ -593,7 +600,7 @@ mod tests {
         assert_eq!(expected, actual.clone().as_bytes());
         let ext = Extension::from_bytes(0x33, expected[4..].into_iter());
         assert_eq!(actual, ext);
-        let key_share = Extension::key_share_client_value(ext);
+        let key_share = ext.key_share_client_value();
         assert_eq!(SupportedGroup::X25519, key_share.0);
         assert_eq!(public_key, key_share.1);
     }
@@ -612,7 +619,7 @@ mod tests {
         assert_eq!(expected, actual.clone().as_bytes());
         let ext = Extension::from_bytes(0x33, expected[4..].into_iter());
         assert_eq!(actual, ext);
-        let key_share = Extension::key_share_server_value(ext);
+        let key_share = ext.key_share_server_value();
         assert_eq!(SupportedGroup::X25519, key_share.0);
         assert_eq!(public_key, key_share.1);
     }
