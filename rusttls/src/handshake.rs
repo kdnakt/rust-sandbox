@@ -320,7 +320,7 @@ impl Extension {
         }
     }
 
-    pub fn key_share_value(e: Extension) -> (SupportedGroup, Vec<u8>) {
+    pub fn key_share_client_value(e: Extension) -> (SupportedGroup, Vec<u8>) {
         let key_len = ((e.extension_data[4] as usize) << 8) + (e.extension_data[5] as usize);
         let group = ((e.extension_data[2] as u16) << 8) + (e.extension_data[3] as u16);
         (group.into(), e.extension_data[6..(6 + key_len)].to_vec())
@@ -593,7 +593,7 @@ mod tests {
         assert_eq!(expected, actual.clone().as_bytes());
         let ext = Extension::from_bytes(0x33, expected[4..].into_iter());
         assert_eq!(actual, ext);
-        let key_share = Extension::key_share_value(ext);
+        let key_share = Extension::key_share_client_value(ext);
         assert_eq!(SupportedGroup::X25519, key_share.0);
         assert_eq!(public_key, key_share.1);
     }
