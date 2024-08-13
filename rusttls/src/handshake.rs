@@ -296,13 +296,23 @@ impl Extension {
         res
     }
 
-    pub fn key_share(group: SupportedGroup, public_key: Vec<u8>) -> Extension {
+    pub fn key_share_client(group: SupportedGroup, public_key: Vec<u8>) -> Extension {
         let mut data = Vec::new();
         data.push(0);
         data.push(0x24);
         data.extend_from_slice(&convert(group as u16));
-        data.push(0);
-        data.push(0x20);
+        data.extend_from_slice(&convert(public_key.len() as u16));
+        data.extend_from_slice(&public_key);
+        Extension {
+            extension_type: ExtensionType::KeyShare,
+            extension_data: data,
+        }
+    }
+
+    pub fn key_share_server(group: SupportedGroup, public_key: Vec<u8>) -> Extension {
+        let mut data = Vec::new();
+        data.extend_from_slice(&convert(group as u16));
+        data.extend_from_slice(&convert(public_key.len() as u16));
         data.extend_from_slice(&public_key);
         Extension {
             extension_type: ExtensionType::KeyShare,
@@ -314,6 +324,12 @@ impl Extension {
         let key_len = ((e.extension_data[4] as usize) << 8) + (e.extension_data[5] as usize);
         let group = ((e.extension_data[2] as u16) << 8) + (e.extension_data[3] as u16);
         (group.into(), e.extension_data[6..(6 + key_len)].to_vec())
+    }
+
+    pub fn key_share_server_value(e: Extension) -> (SupportedGroup, Vec<u8>) {
+        let key_len = ((e.extension_data[2] as usize) << 8) + (e.extension_data[3] as usize);
+        let group = ((e.extension_data[0] as u16) << 8) + (e.extension_data[1] as u16);
+        (group.into(), e.extension_data[4..(4 + key_len)].to_vec())
     }
 
     pub fn ec_point_formats() -> Extension {
@@ -335,7 +351,7 @@ impl From<u16> for SupportedGroup {
         match value {
             0x001d => SupportedGroup::X25519,
             0x0017 => SupportedGroup::SECP256R1,
-            _ => panic!("not implemented"),
+            _ => panic!("not implemented: {}", value),
         }
     }
 }
@@ -571,13 +587,32 @@ mod tests {
             0x35, 0x37, 0x3f, 0x83, 0x43, 0xc8, 0x5b, 0x78, 0x67, 0x4d, 0xad, 0xfc, 0x7e, 0x14,
             0x6f, 0x88, 0x2b, 0x4f,
         ];
-        let actual = Extension::key_share(SupportedGroup::X25519, public_key.clone());
+        let actual = Extension::key_share_client(SupportedGroup::X25519, public_key.clone());
         let mut expected = vec![0, 0x33, 0, 0x26, 0, 0x24, 0, 0x1d, 0, 0x20];
         expected.extend_from_slice(&public_key);
         assert_eq!(expected, actual.clone().as_bytes());
         let ext = Extension::from_bytes(0x33, expected[4..].into_iter());
         assert_eq!(actual, ext);
         let key_share = Extension::key_share_value(ext);
+        assert_eq!(SupportedGroup::X25519, key_share.0);
+        assert_eq!(public_key, key_share.1);
+    }
+
+    #[test]
+    fn key_share_server_value_test() {
+        // taken from: https://github.com/briansmith/ring/blob/main/src/ec/curve25519/x25519.rs#L217C26-L222C15
+        let public_key = vec![
+            0xde, 0x9e, 0xdb, 0x7d, 0x7b, 0x7d, 0xc1, 0xb4, 0xd3, 0x5b, 0x61, 0xc2, 0xec, 0xe4,
+            0x35, 0x37, 0x3f, 0x83, 0x43, 0xc8, 0x5b, 0x78, 0x67, 0x4d, 0xad, 0xfc, 0x7e, 0x14,
+            0x6f, 0x88, 0x2b, 0x4f,
+        ];
+        let actual = Extension::key_share_server(SupportedGroup::X25519, public_key.clone());
+        let mut expected = vec![0, 0x33, 0, 0x24, 0, 0x1d, 0, 0x20];
+        expected.extend_from_slice(&public_key);
+        assert_eq!(expected, actual.clone().as_bytes());
+        let ext = Extension::from_bytes(0x33, expected[4..].into_iter());
+        assert_eq!(actual, ext);
+        let key_share = Extension::key_share_server_value(ext);
         assert_eq!(SupportedGroup::X25519, key_share.0);
         assert_eq!(public_key, key_share.1);
     }

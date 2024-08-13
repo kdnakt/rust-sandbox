@@ -47,7 +47,7 @@ fn ngx_client_hello() {
         ]),
         Extension::ec_point_formats(),
         Extension::supported_versions(),
-        Extension::key_share(SupportedGroup::X25519, public_key.clone()),
+        Extension::key_share_client(SupportedGroup::X25519, public_key.clone()),
     ];
 
     let mut client_hello = TlsHandshake::ClientHello(
@@ -101,6 +101,11 @@ fn ngx_client_hello() {
             .first()
             .unwrap()
         );
+        let key_share = Extension::key_share_server_value(
+            server_extensions.iter().find(|e| e.extension_type == ExtensionType::KeyShare)
+            .unwrap().clone()
+        );
+        assert_eq!(SupportedGroup::X25519, key_share.0);
     } else {
         panic!("not a server hello");
     }
