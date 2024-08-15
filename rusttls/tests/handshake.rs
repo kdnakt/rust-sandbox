@@ -3,6 +3,11 @@ use std::{
     net::TcpStream,
 };
 
+use ring::{
+    agreement::{agree_ephemeral, EphemeralPrivateKey, UnparsedPublicKey, X25519},
+    digest::{digest, SHA256},
+    rand::SystemRandom,
+};
 use rusttls::{
     handshake::{
         CipherSuite, Extension, ExtensionType, SignatureAlgorithm, SupportedGroup, TlsHandshake,
@@ -27,17 +32,14 @@ fn ngx_client_hello() {
         CipherSuite::TLS_AES_128_GCM_SHA256,
         CipherSuite::TLS_AES_256_GCM_SHA384,
     ];
-    // taken from: https://github.com/briansmith/ring/blob/main/src/ec/curve25519/x25519.rs#L217C26-L222C15
-    let public_key = vec![
-        0xde, 0x9e, 0xdb, 0x7d, 0x7b, 0x7d, 0xc1, 0xb4, 0xd3, 0x5b, 0x61, 0xc2, 0xec, 0xe4, 0x35,
-        0x37, 0x3f, 0x83, 0x43, 0xc8, 0x5b, 0x78, 0x67, 0x4d, 0xad, 0xfc, 0x7e, 0x14, 0x6f, 0x88,
-        0x2b, 0x4f,
-    ];
-    let private_key = vec![
-        0x5d, 0xab, 0x08, 0x7e, 0x62, 0x4a, 0x8a, 0x4b, 0x79, 0xe1, 0x7f, 0x8b, 0x83, 0x80, 0x0e,
-        0xe6, 0x6f, 0x3b, 0xb1, 0x29, 0x26, 0x18, 0xb6, 0xfd, 0x1c, 0x2f, 0x8b, 0x27, 0xff, 0x88,
-        0xe0, 0xeb,
-    ];
+    let rng = SystemRandom::new();
+    let client_private_key = EphemeralPrivateKey::generate(&X25519, &rng)
+        .expect("Failed to generate client private key");
+    let client_public_key = client_private_key
+        .compute_public_key()
+        .expect("Failed to compute client public key")
+        .as_ref()
+        .to_vec();
     let extensions = vec![
         Extension::server_name("localhost".into()),
         Extension::supported_groups(vec![SupportedGroup::X25519, SupportedGroup::SECP256R1]),
@@ -47,7 +49,7 @@ fn ngx_client_hello() {
         ]),
         Extension::ec_point_formats(),
         Extension::supported_versions(),
-        Extension::key_share_client(SupportedGroup::X25519, public_key.clone()),
+        Extension::key_share_client(SupportedGroup::X25519, client_public_key),
     ];
 
     let mut client_hello = TlsHandshake::ClientHello(
@@ -61,7 +63,7 @@ fn ngx_client_hello() {
     let mut record = TlsRecord::new(
         record::TlsContentType::Handshake,
         TlsProtocolVersion::tls1_0(),
-        data,
+        data.clone(),
     );
     let bytes = record.as_bytes();
     println!("write: {:?}", bytes);
@@ -89,6 +91,7 @@ fn ngx_client_hello() {
         assert_eq!(TlsProtocolVersion::tls1_2(), version);
         assert_eq!(legacy_session_id, server_session_id);
         assert!(cipher_suites.contains(&cipher_suite));
+        assert_eq!(CipherSuite::TLS_AES_128_GCM_SHA256, cipher_suite);
         assert_eq!(
             TlsProtocolVersion::tls1_3(),
             *Extension::supported_versions_value(
@@ -108,6 +111,17 @@ fn ngx_client_hello() {
             .clone()
             .key_share_server_value();
         assert_eq!(SupportedGroup::X25519, key_share.0);
+
+        let server_public_key = UnparsedPublicKey::new(&X25519, key_share.1);
+        let mut client_hello_bytes = data;
+        let server_hello_bytes = res[5..(5 + len)].to_vec();
+        client_hello_bytes.extend_from_slice(&server_hello_bytes);
+        let digest = digest(&SHA256, &client_hello_bytes);
+        println!("sha256 hash: {:?}", digest);
+        let shared_key = agree_ephemeral(client_private_key, &server_public_key, |material| {
+            material.to_vec()
+        })
+        .expect("Failed to calculate shared key");
     } else {
         panic!("not a server hello");
     }
