@@ -6,6 +6,7 @@ use std::{
 use ring::{
     agreement::{agree_ephemeral, EphemeralPrivateKey, UnparsedPublicKey, X25519},
     digest::{digest, SHA256},
+    hkdf::{self, KeyType, Prk, Salt, HKDF_SHA256},
     rand::SystemRandom,
 };
 use rusttls::{
@@ -122,7 +123,27 @@ fn ngx_client_hello() {
             material.to_vec()
         })
         .expect("Failed to calculate shared key");
+
+        // Key Schedule
+        let salt = [0u8];
+        let pre_shared_key = [0u8];
+
+        // HKDF=Extract(salt, input)
+        let early_secret = Salt::new(HKDF_SHA256, &salt).extract(&pre_shared_key);
+        let first_block_result = derive_secret(early_secret, "derived".as_bytes(), "".as_bytes());
     } else {
         panic!("not a server hello");
     }
+}
+
+/// RFC 8446 TLS1.3: 7.1 Key Schedule
+fn derive_secret(secret: Prk, label: &[u8], messages: &[u8]) -> Vec<u8> {
+    // TODO: use hash designated by the cipher suite.
+    let hash = digest(&SHA256, messages).as_ref();
+    // TODO: construct hkdf label = length + "tls13 " + label + hash
+    let hkdf_label  = &[];
+    let key_material = secret.expand(hkdf_label, HKDF_SHA256).expect("HKDF Expand failed");
+    let mut derived_secret = vec![0;32];
+    key_material.fill(&mut derived_secret).expect("Key material fill failed");
+    derived_secret
 }
