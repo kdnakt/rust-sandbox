@@ -114,10 +114,10 @@ fn ngx_client_hello() {
         assert_eq!(SupportedGroup::X25519, key_share.0);
 
         let server_public_key = UnparsedPublicKey::new(&X25519, key_share.1);
-        let mut client_hello_bytes = data;
+        let mut handshake_messages = data;
         let server_hello_bytes = res[5..(5 + len)].to_vec();
-        client_hello_bytes.extend_from_slice(&server_hello_bytes);
-        let digest = digest(&SHA256, &client_hello_bytes);
+        handshake_messages.extend_from_slice(&server_hello_bytes);
+        let digest = digest(&SHA256, &handshake_messages);
         println!("sha256 hash: {:?}", digest);
         let shared_key = agree_ephemeral(client_private_key, &server_public_key, |material| {
             material.to_vec()
@@ -131,6 +131,13 @@ fn ngx_client_hello() {
         // HKDF=Extract(salt, input)
         let early_secret = Salt::new(HKDF_SHA256, &salt).extract(&pre_shared_key);
         let first_block_result = derive_secret(early_secret, "derived".as_bytes(), "".as_bytes());
+
+        // 2nd key schedule block
+        let handshake_secret = Salt::new(HKDF_SHA256, &shared_key).extract(&first_block_result);
+        let client_handshake_traffic_secret = derive_secret(handshake_secret.clone(), "c hs traffic".as_bytes(), &handshake_messages);
+        println!("c hs traffic {:?}", client_handshake_traffic_secret);
+        let server_handshake_traffic_secret = derive_secret(handshake_secret, "s hs traffic".as_bytes(), &handshake_messages);
+        println!("s hs traffic {:?}", server_handshake_traffic_secret);
     } else {
         panic!("not a server hello");
     }
@@ -139,11 +146,17 @@ fn ngx_client_hello() {
 /// RFC 8446 TLS1.3: 7.1 Key Schedule
 fn derive_secret(secret: Prk, label: &[u8], messages: &[u8]) -> Vec<u8> {
     // TODO: use hash designated by the cipher suite.
-    let hash = digest(&SHA256, messages).as_ref();
+    let hash = digest(&SHA256, messages);
     // TODO: construct hkdf label = length + "tls13 " + label + hash
-    let hkdf_label  = &[];
+    let mut hkdf_label  = &[&convert(hash.clone().as_ref().len() as u16), "tls13 ".as_bytes(), label, hash.as_ref()];
     let key_material = secret.expand(hkdf_label, HKDF_SHA256).expect("HKDF Expand failed");
     let mut derived_secret = vec![0;32];
     key_material.fill(&mut derived_secret).expect("Key material fill failed");
     derived_secret
+}
+
+fn convert(num: u16) -> [u8; 2] {
+    let lower = (num & 0xff) as u8;
+    let upper = (num >> 8) as u8;
+    [upper, lower]
 }
