@@ -141,6 +141,15 @@ fn ngx_client_hello() {
     } else {
         panic!("not a server hello");
     }
+
+    let start = 5 + len;
+    if (record::TlsContentType::ChangeCipherSpec as u8) == res[start] {
+        println!("Skip ChangeCipherSpec");
+        assert_eq!(3, res[start + 1]);
+        assert_eq!(3, res[start + 2]);
+    } else {
+        panic!("Fail");
+    }
 }
 
 /// RFC 8446 TLS1.3: 7.1 Key Schedule

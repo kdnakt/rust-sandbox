@@ -45,6 +45,7 @@ impl TlsRecord {
 #[derive(Copy, Clone, Debug)]
 pub enum TlsContentType {
     Handshake = 22, // 0x16
+    ChangeCipherSpec = 20,
 }
 
 impl From<TlsContentType> for u8 {
