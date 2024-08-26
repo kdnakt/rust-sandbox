@@ -155,6 +155,14 @@ fn ngx_client_hello() {
     } else {
         panic!("Fail");
     }
+
+    let start = start + 6;
+    println!("{:?}", res[start..start+10].bytes());
+    if (record::TlsContentType::ApplicationData as u8) == res[start] {
+        println!("TODO: Decrypt App Data");
+    } else {
+        panic!("Fail");
+    }
 }
 
 /// RFC 8446 TLS1.3: 7.1 Key Schedule
