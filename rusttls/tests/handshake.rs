@@ -147,6 +147,11 @@ fn ngx_client_hello() {
         println!("Skip ChangeCipherSpec");
         assert_eq!(3, res[start + 1]);
         assert_eq!(3, res[start + 2]);
+        // length
+        assert_eq!(0, res[start + 3]);
+        assert_eq!(1, res[start + 4]);
+        // payload
+        assert_eq!(1, res[start + 5]);
     } else {
         panic!("Fail");
     }
