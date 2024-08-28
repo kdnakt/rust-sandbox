@@ -159,6 +159,12 @@ fn ngx_client_hello() {
     let start = start + 6;
     println!("{:?}", res[start..start+10].bytes());
     if (record::TlsContentType::ApplicationData as u8) == res[start] {
+        assert_eq!(3, res[start + 1]);
+        assert_eq!(3, res[start + 2]);
+        let len = ((res[start + 3] as usize) << 8) + (res[start + 4] as usize);
+        println!("encrypted data: {:?}", res[start..(start+100)].bytes());
+        let encrypted_data = &res[(start+5)..(start+5+len)];
+        println!("{:?}", encrypted_data.bytes());
         println!("TODO: Decrypt App Data");
     } else {
         panic!("Fail");
