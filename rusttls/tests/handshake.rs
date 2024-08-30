@@ -4,16 +4,13 @@ use std::{
 };
 
 use ring::{
-    agreement::{agree_ephemeral, EphemeralPrivateKey, UnparsedPublicKey, X25519},
-    digest::{digest, SHA256},
-    hkdf::{self, KeyType, Prk, Salt, HKDF_SHA256},
-    rand::SystemRandom,
+    aead::{BoundKey, Nonce, NonceSequence, SealingKey, UnboundKey, AES_128_GCM, NONCE_LEN}, agreement::{agree_ephemeral, EphemeralPrivateKey, UnparsedPublicKey, X25519}, digest::{digest, SHA256}, hkdf::{self, KeyType, Prk, Salt, HKDF_SHA256}, rand::SystemRandom
 };
 use rusttls::{
     handshake::{
         CipherSuite, Extension, ExtensionType, SignatureAlgorithm, SupportedGroup, TlsHandshake,
     },
-    record::{self, TlsProtocolVersion, TlsRecord},
+    record::{self, TlsContentType, TlsProtocolVersion, TlsRecord},
 };
 
 #[test]
@@ -156,6 +153,20 @@ fn ngx_client_hello() {
         panic!("Fail");
     }
 
+    // https://web3developer.io/authenticated-encryption-in-rust-using-ring/
+    struct CounterNonceSequence(u32);
+    impl NonceSequence for CounterNonceSequence {
+        fn advance(&mut self) -> Result<ring::aead::Nonce, ring::error::Unspecified> {
+            let mut nonce_bytes = vec![0; NONCE_LEN];
+            let bytes = self.0.to_be_bytes();
+            nonce_bytes[8..].copy_from_slice(&bytes);
+            self.0 += 1;
+
+            Nonce::try_assume_unique_for_key(&nonce_bytes)
+        }
+    }
+    let nonce_sequence = CounterNonceSequence(1);
+
     let start = start + 6;
     println!("{:?}", res[start..start+10].bytes());
     if (record::TlsContentType::ApplicationData as u8) == res[start] {
@@ -166,6 +177,17 @@ fn ngx_client_hello() {
         let encrypted_data = &res[(start+5)..(start+5+len)];
         println!("{:?}", encrypted_data.bytes());
         println!("TODO: Decrypt App Data");
+
+        let len = convert(len as u16);
+        let mut additional_data = [
+            TlsContentType::ApplicationData as u8,
+            // protocol version
+            res[start + 1], res[start + 2],
+            len[0], len[1],
+        ];
+
+        let unbound_key = todo!();
+        let mut sealing_key = SealingKey::new(key, nonce_sequence);
     } else {
         panic!("Fail");
     }
