@@ -135,61 +135,62 @@ fn ngx_client_hello() {
         println!("c hs traffic {:?}", client_handshake_traffic_secret);
         let server_handshake_traffic_secret = derive_secret(handshake_secret, "s hs traffic".as_bytes(), &handshake_messages);
         println!("s hs traffic {:?}", server_handshake_traffic_secret);
+
+        let start = 5 + len;
+        if (record::TlsContentType::ChangeCipherSpec as u8) == res[start] {
+            println!("Skip ChangeCipherSpec");
+            assert_eq!(3, res[start + 1]);
+            assert_eq!(3, res[start + 2]);
+            // length
+            assert_eq!(0, res[start + 3]);
+            assert_eq!(1, res[start + 4]);
+            // payload
+            assert_eq!(1, res[start + 5]);
+        } else {
+            panic!("Fail");
+        }
+
+        // https://web3developer.io/authenticated-encryption-in-rust-using-ring/
+        struct CounterNonceSequence(u32);
+        impl NonceSequence for CounterNonceSequence {
+            fn advance(&mut self) -> Result<ring::aead::Nonce, ring::error::Unspecified> {
+                let mut nonce_bytes = vec![0; NONCE_LEN];
+                let bytes = self.0.to_be_bytes();
+                nonce_bytes[8..].copy_from_slice(&bytes);
+                self.0 += 1;
+
+                Nonce::try_assume_unique_for_key(&nonce_bytes)
+            }
+        }
+        let nonce_sequence = CounterNonceSequence(1);
+
+        let start = start + 6;
+        println!("{:?}", res[start..start+10].bytes());
+        if (record::TlsContentType::ApplicationData as u8) == res[start] {
+            assert_eq!(3, res[start + 1]);
+            assert_eq!(3, res[start + 2]);
+            let len = ((res[start + 3] as usize) << 8) + (res[start + 4] as usize);
+            println!("encrypted data: {:?}", res[start..(start+100)].bytes());
+            let encrypted_data = &res[(start+5)..(start+5+len)];
+            println!("{:?}", encrypted_data.bytes());
+            println!("TODO: Decrypt App Data");
+
+            let len = convert(len as u16);
+            let additional_data = [
+                TlsContentType::ApplicationData as u8,
+                // protocol version
+                res[start + 1], res[start + 2],
+                len[0], len[1],
+            ];
+
+            assert_eq!(AES_128_GCM.key_len(), server_handshake_traffic_secret.len());
+            let unbound_key = UnboundKey::new(&AES_128_GCM, &server_handshake_traffic_secret).unwrap();
+            let mut sealing_key = SealingKey::new(unbound_key, nonce_sequence);
+        } else {
+            panic!("Fail");
+        }
     } else {
         panic!("not a server hello");
-    }
-
-    let start = 5 + len;
-    if (record::TlsContentType::ChangeCipherSpec as u8) == res[start] {
-        println!("Skip ChangeCipherSpec");
-        assert_eq!(3, res[start + 1]);
-        assert_eq!(3, res[start + 2]);
-        // length
-        assert_eq!(0, res[start + 3]);
-        assert_eq!(1, res[start + 4]);
-        // payload
-        assert_eq!(1, res[start + 5]);
-    } else {
-        panic!("Fail");
-    }
-
-    // https://web3developer.io/authenticated-encryption-in-rust-using-ring/
-    struct CounterNonceSequence(u32);
-    impl NonceSequence for CounterNonceSequence {
-        fn advance(&mut self) -> Result<ring::aead::Nonce, ring::error::Unspecified> {
-            let mut nonce_bytes = vec![0; NONCE_LEN];
-            let bytes = self.0.to_be_bytes();
-            nonce_bytes[8..].copy_from_slice(&bytes);
-            self.0 += 1;
-
-            Nonce::try_assume_unique_for_key(&nonce_bytes)
-        }
-    }
-    let nonce_sequence = CounterNonceSequence(1);
-
-    let start = start + 6;
-    println!("{:?}", res[start..start+10].bytes());
-    if (record::TlsContentType::ApplicationData as u8) == res[start] {
-        assert_eq!(3, res[start + 1]);
-        assert_eq!(3, res[start + 2]);
-        let len = ((res[start + 3] as usize) << 8) + (res[start + 4] as usize);
-        println!("encrypted data: {:?}", res[start..(start+100)].bytes());
-        let encrypted_data = &res[(start+5)..(start+5+len)];
-        println!("{:?}", encrypted_data.bytes());
-        println!("TODO: Decrypt App Data");
-
-        let len = convert(len as u16);
-        let mut additional_data = [
-            TlsContentType::ApplicationData as u8,
-            // protocol version
-            res[start + 1], res[start + 2],
-            len[0], len[1],
-        ];
-
-        let unbound_key = todo!();
-        let mut sealing_key = SealingKey::new(key, nonce_sequence);
-    } else {
-        panic!("Fail");
     }
 }
 
