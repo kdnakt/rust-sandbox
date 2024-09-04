@@ -4,7 +4,7 @@ use std::{
 };
 
 use ring::{
-    aead::{Aad, BoundKey, Nonce, NonceSequence, SealingKey, UnboundKey, AES_128_GCM, NONCE_LEN}, agreement::{agree_ephemeral, EphemeralPrivateKey, UnparsedPublicKey, X25519}, digest::{digest, SHA256}, hkdf::{self, KeyType, Prk, Salt, HKDF_SHA256}, rand::SystemRandom
+    aead::{Aad, BoundKey, Nonce, NonceSequence, SealingKey, UnboundKey, AES_128_GCM, NONCE_LEN}, agreement::{agree_ephemeral, EphemeralPrivateKey, UnparsedPublicKey, X25519}, digest::{digest, SHA256, SHA256_OUTPUT_LEN}, hkdf::{self, KeyType, Prk, Salt, HKDF_SHA256}, rand::SystemRandom
 };
 use rusttls::{
     handshake::{
@@ -202,7 +202,7 @@ fn derive_secret(secret: Prk, label: &[u8], messages: &[u8]) -> Vec<u8> {
     // TODO: construct hkdf label = length + "tls13 " + label + hash
     let hkdf_label  = &[&convert(hash.clone().as_ref().len() as u16), "tls13 ".as_bytes(), label, hash.as_ref()];
     let key_material = secret.expand(hkdf_label, HKDF_SHA256).expect("HKDF Expand failed");
-    let mut derived_secret = vec![0; 32];
+    let mut derived_secret = vec![0; SHA256_OUTPUT_LEN];
     key_material.fill(&mut derived_secret).expect("Key material fill failed");
     derived_secret
 }
