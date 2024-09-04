@@ -4,7 +4,7 @@ use std::{
 };
 
 use ring::{
-    aead::{BoundKey, Nonce, NonceSequence, SealingKey, UnboundKey, AES_128_GCM, NONCE_LEN}, agreement::{agree_ephemeral, EphemeralPrivateKey, UnparsedPublicKey, X25519}, digest::{digest, SHA256}, hkdf::{self, KeyType, Prk, Salt, HKDF_SHA256}, rand::SystemRandom
+    aead::{Aad, BoundKey, Nonce, NonceSequence, SealingKey, UnboundKey, AES_128_GCM, NONCE_LEN}, agreement::{agree_ephemeral, EphemeralPrivateKey, UnparsedPublicKey, X25519}, digest::{digest, SHA256}, hkdf::{self, KeyType, Prk, Salt, HKDF_SHA256}, rand::SystemRandom
 };
 use rusttls::{
     handshake::{
@@ -170,18 +170,19 @@ fn ngx_client_hello() {
             assert_eq!(3, res[start + 1]);
             assert_eq!(3, res[start + 2]);
             let len = ((res[start + 3] as usize) << 8) + (res[start + 4] as usize);
-            println!("encrypted data: {:?}", res[start..(start+100)].bytes());
+            println!("encrypted data: {:?}", res[start..(start + 5 + len)].bytes());
             let encrypted_data = &res[(start+5)..(start+5+len)];
             println!("{:?}", encrypted_data.bytes());
             println!("TODO: Decrypt App Data");
 
             let len = convert(len as u16);
-            let additional_data = [
+            let associated_data = [
                 TlsContentType::ApplicationData as u8,
                 // protocol version
                 res[start + 1], res[start + 2],
                 len[0], len[1],
             ];
+            let associated_data = Aad::from(associated_data);
 
             assert_eq!(AES_128_GCM.key_len(), server_handshake_traffic_secret.len());
             let unbound_key = UnboundKey::new(&AES_128_GCM, &server_handshake_traffic_secret).unwrap();
@@ -199,9 +200,9 @@ fn derive_secret(secret: Prk, label: &[u8], messages: &[u8]) -> Vec<u8> {
     // TODO: use hash designated by the cipher suite.
     let hash = digest(&SHA256, messages);
     // TODO: construct hkdf label = length + "tls13 " + label + hash
-    let mut hkdf_label  = &[&convert(hash.clone().as_ref().len() as u16), "tls13 ".as_bytes(), label, hash.as_ref()];
+    let hkdf_label  = &[&convert(hash.clone().as_ref().len() as u16), "tls13 ".as_bytes(), label, hash.as_ref()];
     let key_material = secret.expand(hkdf_label, HKDF_SHA256).expect("HKDF Expand failed");
-    let mut derived_secret = vec![0;32];
+    let mut derived_secret = vec![0; 32];
     key_material.fill(&mut derived_secret).expect("Key material fill failed");
     derived_secret
 }
