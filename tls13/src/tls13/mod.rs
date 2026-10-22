@@ -1,4 +1,6 @@
 
+mod common;
+
 #[derive(Debug)]
 pub struct Conn {
     // Connection details would go here
