@@ -1,5 +1,6 @@
 
 mod common;
+mod record;
 
 #[derive(Debug)]
 pub struct Conn {
