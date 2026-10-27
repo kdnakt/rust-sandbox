@@ -15,4 +15,12 @@ impl Handshake {
             body,
         }
     }
+
+    pub fn marshall(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+        buffer.push(self.handshake_type);
+        buffer.extend_from_slice(&self.length);
+        buffer.extend_from_slice(&self.body);
+        buffer
+    }
 }
