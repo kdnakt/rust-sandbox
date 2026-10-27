@@ -1,5 +1,6 @@
 
 mod common;
+mod handshake;
 mod record;
 
 #[derive(Debug)]
