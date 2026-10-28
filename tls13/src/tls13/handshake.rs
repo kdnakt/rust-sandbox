@@ -24,3 +24,20 @@ impl Handshake {
         buffer
     }
 }
+
+fn unmarshall_handshake(bytes: &[u8]) -> Result<Handshake, &'static str> {
+    if bytes.len() < 4 {
+        return Err("Insufficient bytes for handshake header");
+    }
+    let handshake_type = bytes[0];
+    let length = u32::from_be_bytes([0, bytes[1], bytes[2], bytes[3]]);
+    if bytes.len() != 4 + length as usize {
+        return Err("Invalid handshake body length");
+    }
+    let body = bytes[4..4 + length as usize].to_vec();
+    Ok(Handshake {
+        handshake_type,
+        length: [bytes[1], bytes[2], bytes[3]],
+        body,
+    })
+}
