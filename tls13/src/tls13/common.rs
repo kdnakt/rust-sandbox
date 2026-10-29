@@ -22,3 +22,15 @@ pub const HSTYPE_ENCRYPTED_EXTENSIONS: HandshakeType = 8;
 pub const HSTYPE_CERTIFICATE: HandshakeType = 11;
 pub const HSTYPE_CERTIFICATE_VERIFY: HandshakeType = 15;
 pub const HSTYPE_FINISHED: HandshakeType = 20;
+
+pub type CipherSuite = u16;
+
+pub const TLS_AES_128_GCM_SHA256: CipherSuite = 0x1301;
+
+pub type ExtensionType = u16;
+
+pub const EXT_SERVER_NAME: ExtensionType = 0;
+pub const EXT_SUPPORTED_GROUPS: ExtensionType = 10;
+pub const EXT_SIGNATURE_ALGORITHMS: ExtensionType = 13;
+pub const EXT_SUPPORTED_VERSIONS: ExtensionType = 43;
+pub const EXT_KEY_SHARE: ExtensionType = 51;
