@@ -1,6 +1,7 @@
 
 mod client_hello;
 mod common;
+mod extensions;
 mod handshake;
 mod record;
 
