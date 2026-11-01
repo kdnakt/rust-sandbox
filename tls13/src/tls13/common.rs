@@ -34,3 +34,12 @@ pub const EXT_SUPPORTED_GROUPS: ExtensionType = 10;
 pub const EXT_SIGNATURE_ALGORITHMS: ExtensionType = 13;
 pub const EXT_SUPPORTED_VERSIONS: ExtensionType = 43;
 pub const EXT_KEY_SHARE: ExtensionType = 51;
+
+pub type SignatureScheme = u16;
+
+pub const SIG_RSA_PKCS1_SHA256: SignatureScheme = 0x0401;
+pub const SIG_ECDSA_SECP256R1_SHA256: SignatureScheme = 0x0403;
+pub const SIG_ECDSA_SECP384R1_SHA384: SignatureScheme = 0x0503;
+pub const SIG_RSA_PSS_RSAE_SHA256: SignatureScheme = 0x0804;
+pub const SIG_RSA_PSS_RSAE_SHA384: SignatureScheme = 0x0805;
+pub const SIG_RSA_PSS_RSAE_SHA512: SignatureScheme = 0x0806;
