@@ -1,5 +1,6 @@
 use crate::tls13::bytes::*;
 use crate::tls13::common::*;
+use crate::tls13::extensions::*;
 
 const CLIENT_RANDOM_LENGTH: usize = 32;
 
@@ -12,7 +13,7 @@ pub struct ClientHello {
     pub extensions: Vec<u8>,
 }
 
-pub fn new_client_hello(random: [u8; CLIENT_RANDOM_LENGTH], exts: Vec<Exten>) -> ClientHello {
+pub fn new_client_hello(random: [u8; CLIENT_RANDOM_LENGTH], exts: Vec<Extension>) -> ClientHello {
     ClientHello {
         protocol_version: TLS_VERSION_1_2,
         client_random: random,
