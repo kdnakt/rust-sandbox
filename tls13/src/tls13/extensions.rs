@@ -14,3 +14,22 @@ impl Extension {
         buffer
     }
 }
+
+pub fn server_name_extension(hostname: &str) -> Extension {
+    let hostname_bytes = hostname.as_bytes().to_vec();
+    let mut payload = Vec::new();
+    payload.push(0); // NameType: host_name
+    payload.extend_from_slice(&with_u16length(&hostname_bytes));
+    Extension {
+        extension_type: EXT_SERVER_NAME,
+        payload,
+    }
+}
+
+pub fn supported_versions_extension() -> Extension {
+    let versions = TLS_VERSION_1_3.to_be_bytes().to_vec();
+    Extension {
+        extension_type: EXT_SUPPORTED_VERSIONS,
+        payload: with_u8length(&versions)
+    }
+}
