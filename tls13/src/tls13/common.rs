@@ -1,11 +1,9 @@
-
 pub type ContentType = u8;
 
 pub const CONTENT_TYPE_CHANGE_CIPHER_SPEC: ContentType = 20;
 pub const CONTENT_TYPE_ALERT: ContentType = 21;
 pub const CONTENT_TYPE_HANDSHAKE: ContentType = 22;
 pub const CONTENT_TYPE_APPLICATION_DATA: ContentType = 23;
-
 
 pub type TlsVersion = u16;
 

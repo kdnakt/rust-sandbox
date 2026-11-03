@@ -1,4 +1,3 @@
-
 use crate::tls13::common::*;
 
 pub struct TlsPlaintext {

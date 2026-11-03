@@ -30,7 +30,7 @@ pub fn supported_versions_extension() -> Extension {
     let versions = TLS_VERSION_1_3.to_be_bytes().to_vec();
     Extension {
         extension_type: EXT_SUPPORTED_VERSIONS,
-        payload: with_u8length(&versions)
+        payload: with_u8length(&versions),
     }
 }
 
@@ -42,7 +42,11 @@ pub fn signature_algorithms_extension() -> Extension {
         SIG_RSA_PSS_RSAE_SHA256,
         SIG_RSA_PSS_RSAE_SHA384,
         SIG_RSA_PSS_RSAE_SHA512,
-    ].iter().map(|a| a.to_be_bytes()).flatten().collect::<Vec<u8>>();
+    ]
+    .iter()
+    .map(|a| a.to_be_bytes())
+    .flatten()
+    .collect::<Vec<u8>>();
     Extension {
         extension_type: EXT_SIGNATURE_ALGORITHMS,
         payload: with_u16length(&algorithms),

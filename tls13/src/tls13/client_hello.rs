@@ -37,7 +37,7 @@ impl ClientHello {
             .flat_map(|suite| suite.to_be_bytes())
             .collect();
         buffer.extend_from_slice(&with_u16length(&cipher_suites_bytes));
-        
+
         buffer.extend_from_slice(&with_u8length(&self.compression_methods));
         buffer.extend_from_slice(&with_u16length(&self.extensions));
         buffer
