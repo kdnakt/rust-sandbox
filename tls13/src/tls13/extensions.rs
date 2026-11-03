@@ -33,3 +33,18 @@ pub fn supported_versions_extension() -> Extension {
         payload: with_u8length(&versions)
     }
 }
+
+pub fn signature_algorithms_extension() -> Extension {
+    let algorithms = [
+        SIG_RSA_PKCS1_SHA256,
+        SIG_ECDSA_SECP256R1_SHA256,
+        SIG_ECDSA_SECP384R1_SHA384,
+        SIG_RSA_PSS_RSAE_SHA256,
+        SIG_RSA_PSS_RSAE_SHA384,
+        SIG_RSA_PSS_RSAE_SHA512,
+    ].iter().map(|a| a.to_be_bytes()).flatten().collect::<Vec<u8>>();
+    Extension {
+        extension_type: EXT_SIGNATURE_ALGORITHMS,
+        payload: with_u16length(&algorithms),
+    }
+}
