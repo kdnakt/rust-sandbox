@@ -41,3 +41,7 @@ pub const SIG_ECDSA_SECP384R1_SHA384: SignatureScheme = 0x0503;
 pub const SIG_RSA_PSS_RSAE_SHA256: SignatureScheme = 0x0804;
 pub const SIG_RSA_PSS_RSAE_SHA384: SignatureScheme = 0x0805;
 pub const SIG_RSA_PSS_RSAE_SHA512: SignatureScheme = 0x0806;
+
+pub type NamedGroup = u16;
+
+pub const X25519: NamedGroup = 0x001d;

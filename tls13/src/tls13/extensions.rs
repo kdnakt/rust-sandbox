@@ -52,3 +52,15 @@ pub fn signature_algorithms_extension() -> Extension {
         payload: with_u16length(&algorithms),
     }
 }
+
+pub fn supported_groups_extension() -> Extension {
+    let groups = [X25519]
+        .iter()
+        .map(|g| g.to_be_bytes())
+        .flatten()
+        .collect::<Vec<u8>>();
+    Extension {
+        extension_type: EXT_SUPPORTED_GROUPS,
+        payload: with_u16length(&groups),
+    }
+}
