@@ -64,3 +64,17 @@ pub fn supported_groups_extension() -> Extension {
         payload: with_u16length(&groups),
     }
 }
+
+pub fn key_share_extension(public_key: Vec<u8>) -> Extension {
+    let key_share_entry = {
+        let mut entry = Vec::new();
+        entry.extend_from_slice(&X25519.to_be_bytes());
+        entry.extend_from_slice(&with_u16length(&public_key));
+        entry
+    };
+    let payload = with_u16length(&key_share_entry);
+    Extension {
+        extension_type: EXT_KEY_SHARE,
+        payload,
+    }
+}
