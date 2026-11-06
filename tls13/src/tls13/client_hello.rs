@@ -4,6 +4,7 @@ use crate::tls13::extensions::*;
 
 const CLIENT_RANDOM_LENGTH: usize = 32;
 
+#[derive(Debug, Clone)]
 pub struct ClientHello {
     pub protocol_version: TlsVersion,
     pub client_random: [u8; CLIENT_RANDOM_LENGTH],

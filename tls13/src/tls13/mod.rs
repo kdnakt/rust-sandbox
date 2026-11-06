@@ -1,9 +1,9 @@
-mod bytes;
-mod client_hello;
-mod common;
-mod extensions;
-mod handshake;
-mod record;
+pub mod bytes;
+pub mod client_hello;
+pub mod common;
+pub mod extensions;
+pub mod handshake;
+pub mod record;
 
 #[derive(Debug)]
 pub struct Conn {
