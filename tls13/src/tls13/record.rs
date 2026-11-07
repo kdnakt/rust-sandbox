@@ -1,5 +1,6 @@
 use crate::tls13::common::*;
 
+#[derive(Debug, Clone)]
 pub struct TlsPlaintext {
     content_type: ContentType,
     version: TlsVersion,
@@ -45,4 +46,27 @@ impl TlsPlaintext {
         buffer.extend_from_slice(&self.payload);
         buffer
     }
+}
+
+pub fn read_record(stream: &mut impl std::io::Read) -> Result<TlsPlaintext, &'static str> {
+    let mut header = [0u8; 5];
+    if stream.read_exact(&mut header).is_err() {
+        return Err("Failed to read record header");
+    }
+    let content_type = header[0];
+    let version = u16::from_be_bytes([header[1], header[2]]);
+    let length = u16::from_be_bytes([header[3], header[4]]);
+    if length as usize > MAX_PAYLOAD_LENGTH {
+        return Err("Record payload too large");
+    }
+    let mut payload = vec![0u8; length as usize];
+    if stream.read_exact(&mut payload).is_err() {
+        return Err("Failed to read record payload");
+    }
+    Ok(TlsPlaintext {
+        content_type,
+        version,
+        length,
+        payload,
+    })
 }

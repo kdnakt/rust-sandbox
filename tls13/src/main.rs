@@ -1,7 +1,10 @@
 mod tls13;
 
+use std::io::{Read, Write};
+use std::net::TcpStream;
+use std::time::Duration;
+
 use aws_lc_rs::agreement::*;
-use aws_lc_rs::encoding::AsBigEndian;
 use aws_lc_rs::rand::{SecureRandom, SystemRandom};
 
 fn main() {
@@ -21,4 +24,23 @@ fn main() {
         tls13::extensions::key_share_extension(public_key),
     ]);
     println!("Client Hello: {:?}", client_hello);
+
+    let h = tls13::handshake::Handshake::new(tls13::common::HSTYPE_CLIENT_HELLO, client_hello.marshall());
+    println!("Handshake: {:?}", h);
+
+    let rec = tls13::record::TlsPlaintext::new(tls13::common::CONTENT_TYPE_HANDSHAKE, h.marshall());
+    println!("Record: {:?}", rec);
+
+    // tcp connection to example.com:443
+    let mut conn = TcpStream::connect("example.com:443").unwrap();
+    conn.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+    conn.write(&rec.marshall()).unwrap();
+    for i in 0..5 {
+        let response = tls13::record::read_record(&mut conn);
+        if response.is_err() {
+            println!("Failed to read record: {:?}", response.err());
+            break;
+        }
+        println!("Response {}: {:?}", i, response.unwrap());
+    }
 }

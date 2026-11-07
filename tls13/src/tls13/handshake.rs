@@ -1,5 +1,6 @@
 use crate::tls13::common::HandshakeType;
 
+#[derive(Debug, Clone)]
 pub struct Handshake {
     pub handshake_type: HandshakeType,
     pub length: [u8; 3],
