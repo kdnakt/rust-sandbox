@@ -4,6 +4,7 @@ pub mod common;
 pub mod extensions;
 pub mod handshake;
 pub mod record;
+pub mod server_hello;
 
 #[derive(Debug)]
 pub struct Conn {
