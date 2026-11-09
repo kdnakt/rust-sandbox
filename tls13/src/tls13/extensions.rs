@@ -15,6 +15,33 @@ impl Extension {
     }
 }
 
+pub fn unmarshall_extensions(data: Vec<u8>) -> Result<Vec<Extension>, &'static str> {
+    let mut extensions = Vec::new();
+    let mut cursor = 0;
+
+    while cursor < data.len() {
+        if cursor + 4 > data.len() {
+            return Err("Insufficient bytes for extension header");
+        }
+        let extension_type = u16::from_be_bytes([data[cursor], data[cursor + 1]]);
+        let length = u16::from_be_bytes([data[cursor + 2], data[cursor + 3]]) as usize;
+        cursor += 4;
+
+        if cursor + length > data.len() {
+            return Err("Insufficient bytes for extension payload");
+        }
+        let payload = data[cursor..cursor + length].to_vec().clone();
+        cursor += length;
+
+        extensions.push(Extension {
+            extension_type,
+            payload,
+        });
+    }
+
+    Ok(extensions)
+}
+
 pub fn server_name_extension(hostname: &str) -> Extension {
     let hostname_bytes = hostname.as_bytes().to_vec();
     let mut payload = Vec::new();
