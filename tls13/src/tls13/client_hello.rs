@@ -11,17 +11,17 @@ pub struct ClientHello {
     pub legacy_session_id: Vec<u8>,
     pub cipher_suites: Vec<CipherSuite>,
     pub compression_methods: Vec<u8>,
-    pub extensions: Vec<u8>,
+    pub extensions: Vec<Extension>,
 }
 
-pub fn new_client_hello(random: [u8; CLIENT_RANDOM_LENGTH], exts: Vec<Extension>) -> ClientHello {
+pub fn new_client_hello(random: [u8; CLIENT_RANDOM_LENGTH], extensions: Vec<Extension>) -> ClientHello {
     ClientHello {
         protocol_version: TLS_VERSION_1_2,
         client_random: random,
         legacy_session_id: Vec::new(),
         cipher_suites: vec![TLS_AES_128_GCM_SHA256],
         compression_methods: vec![0], // No compression
-        extensions: Vec::new(),
+        extensions,
     }
 }
 
@@ -40,7 +40,12 @@ impl ClientHello {
         buffer.extend_from_slice(&with_u16length(&cipher_suites_bytes));
 
         buffer.extend_from_slice(&with_u8length(&self.compression_methods));
-        buffer.extend_from_slice(&with_u16length(&self.extensions));
+        let extensions_bytes: Vec<u8> = self
+            .extensions
+            .iter()
+            .flat_map(|ext| ext.marshall())
+            .collect();
+        buffer.extend_from_slice(&with_u16length(&extensions_bytes));
         buffer
     }
 }

@@ -1,6 +1,7 @@
 use crate::tls13::bytes::*;
 use crate::tls13::common::*;
 
+#[derive(Debug, Clone)]
 pub struct Extension {
     pub extension_type: ExtensionType,
     pub payload: Vec<u8>,
