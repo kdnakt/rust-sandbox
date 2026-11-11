@@ -56,3 +56,36 @@ pub fn unmarshall_server_hello(body: &Vec<u8>) -> Result<ServerHello, &'static s
         extensions,
     })
 }
+
+impl ServerHello {
+    pub fn selected_version(&self) -> Option<TlsVersion> {
+        for ext in &self.extensions {
+            if ext.extension_type == EXT_SUPPORTED_VERSIONS {
+                if ext.payload.len() < 2 {
+                    return None;
+                }
+                let version = u16::from_be_bytes([ext.payload[0], ext.payload[1]]);
+                return Some(version);
+            }
+        }
+        None
+    }
+
+    pub fn key_share(&self) -> Option<(NamedGroup, Vec<u8>)> {
+        for ext in &self.extensions {
+            if ext.extension_type == EXT_KEY_SHARE {
+                if ext.payload.len() < 4 {
+                    continue;
+                }
+                let group = u16::from_be_bytes([ext.payload[0], ext.payload[1]]);
+                let key_exchange_length = u16::from_be_bytes([ext.payload[2], ext.payload[3]]) as usize;
+                if ext.payload.len() < 4 + key_exchange_length {
+                    continue;
+                }
+                let key = ext.payload[4..4 + key_exchange_length].to_vec();
+                return Some((group, key));
+            }
+        }
+        None
+    }
+}
