@@ -7,7 +7,7 @@ use std::time::Duration;
 use aws_lc_rs::agreement::*;
 use aws_lc_rs::rand::{SecureRandom, SystemRandom};
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Hello, world!");
     let rng = SystemRandom::new();
     let private_key = EphemeralPrivateKey::generate(&X25519, &rng).unwrap();
@@ -35,12 +35,9 @@ fn main() {
     let mut conn = TcpStream::connect("example.com:443").unwrap();
     conn.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
     conn.write(&rec.marshall()).unwrap();
-    for i in 0..5 {
-        let response = tls13::record::read_record(&mut conn);
-        if response.is_err() {
-            println!("Failed to read record: {:?}", response.err());
-            break;
-        }
-        println!("Response {}: {:?}", i, response.unwrap());
-    }
+    let response = tls13::record::read_record(&mut conn)?;
+    let msg = tls13::handshake::unmarshall_handshake(&response.payload)?;
+    let server_hello = tls13::server_hello::unmarshall_server_hello(&msg.body)?;
+    println!("Server Hello: {:?}", server_hello);
+    Ok(())
 }

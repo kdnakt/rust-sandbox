@@ -26,7 +26,7 @@ impl Handshake {
     }
 }
 
-fn unmarshall_handshake(bytes: &[u8]) -> Result<Handshake, &'static str> {
+pub fn unmarshall_handshake(bytes: &[u8]) -> Result<Handshake, &'static str> {
     if bytes.len() < 4 {
         return Err("Insufficient bytes for handshake header");
     }

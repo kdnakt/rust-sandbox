@@ -5,7 +5,7 @@ pub struct TlsPlaintext {
     content_type: ContentType,
     version: TlsVersion,
     length: u16,
-    payload: Vec<u8>,
+    pub payload: Vec<u8>,
 }
 
 impl TlsPlaintext {
