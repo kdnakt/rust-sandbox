@@ -36,6 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     conn.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
     conn.write(&rec.marshall()).unwrap();
     let response = tls13::record::read_record(&mut conn)?;
+    println!("Response: {:?}", response);
     let msg = tls13::handshake::unmarshall_handshake(&response.payload)?;
     let server_hello = tls13::server_hello::unmarshall_server_hello(&msg.body)?;
     println!("Server Hello: {:?}", server_hello);
