@@ -18,7 +18,7 @@ pub fn new_client_hello(random: [u8; CLIENT_RANDOM_LENGTH], extensions: Vec<Exte
     ClientHello {
         protocol_version: TLS_VERSION_1_2,
         client_random: random,
-        legacy_session_id: Vec::new(),
+        legacy_session_id: vec![],
         cipher_suites: vec![TLS_AES_128_GCM_SHA256],
         compression_methods: vec![0], // No compression
         extensions,

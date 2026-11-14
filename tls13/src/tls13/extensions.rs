@@ -45,12 +45,12 @@ pub fn unmarshall_extensions(data: Vec<u8>) -> Result<Vec<Extension>, &'static s
 
 pub fn server_name_extension(hostname: &str) -> Extension {
     let hostname_bytes = hostname.as_bytes().to_vec();
-    let mut payload = Vec::new();
-    payload.push(0); // NameType: host_name
-    payload.extend_from_slice(&with_u16length(&hostname_bytes));
+    let mut entry = Vec::new();
+    entry.push(0); // NameType: host_name
+    entry.extend_from_slice(&with_u16length(&hostname_bytes));
     Extension {
         extension_type: EXT_SERVER_NAME,
-        payload,
+        payload: with_u16length(&entry),
     }
 }
 
