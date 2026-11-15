@@ -1,5 +1,5 @@
 
-use crate::tls13::{common::*, extensions::{Extension, unmarshall_extensions}};
+use crate::tls13::{common::*, extensions::{self, Extension, unmarshall_extensions}};
 
 const SERVER_RANDOM_LENGTH: usize = 32;
 
@@ -34,17 +34,13 @@ pub fn unmarshall_server_hello(body: &Vec<u8>) -> Result<ServerHello, &'static s
         body[cipher_suite_start + 1],
     ]);
 
-    let compression_methods_length = body[cipher_suite_start + 2] as usize;
-    if body.len() < cipher_suite_start + 3 + compression_methods_length {
-        return Err("Insufficient bytes for compression methods");
-    }
-
-    let compression_method = body[cipher_suite_start + 3];
-    let extensions_start = cipher_suite_start + 4;
-    if body.len() < extensions_start {
+    let compression_method = body[cipher_suite_start + 2];
+    let extensions_start = cipher_suite_start + 3;
+    let extensions_length = u16::from_be_bytes([body[extensions_start], body[extensions_start + 1]]) as usize;
+    if body.len() < extensions_start + 2 + extensions_length {
         return Err("Insufficient bytes for extensions");
     }
-    let extensions = body[extensions_start..].to_vec();
+    let extensions = body[extensions_start + 2..extensions_start + 2 + extensions_length].to_vec();
     let extensions = unmarshall_extensions(extensions)?;
 
     Ok(ServerHello {
