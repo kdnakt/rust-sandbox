@@ -14,7 +14,10 @@ pub struct ClientHello {
     pub extensions: Vec<Extension>,
 }
 
-pub fn new_client_hello(random: [u8; CLIENT_RANDOM_LENGTH], extensions: Vec<Extension>) -> ClientHello {
+pub fn new_client_hello(
+    random: [u8; CLIENT_RANDOM_LENGTH],
+    extensions: Vec<Extension>,
+) -> ClientHello {
     ClientHello {
         protocol_version: TLS_VERSION_1_2,
         client_random: random,

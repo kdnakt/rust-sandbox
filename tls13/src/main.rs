@@ -16,16 +16,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut random = [0u8; 32];
     rng.fill(&mut random).unwrap();
 
-    let client_hello = tls13::client_hello::new_client_hello(random, vec![
-        tls13::extensions::server_name_extension("example.com"),
-        tls13::extensions::supported_versions_extension(),
-        tls13::extensions::signature_algorithms_extension(),
-        tls13::extensions::supported_groups_extension(),
-        tls13::extensions::key_share_extension(public_key),
-    ]);
+    let client_hello = tls13::client_hello::new_client_hello(
+        random,
+        vec![
+            tls13::extensions::server_name_extension("example.com"),
+            tls13::extensions::supported_versions_extension(),
+            tls13::extensions::signature_algorithms_extension(),
+            tls13::extensions::supported_groups_extension(),
+            tls13::extensions::key_share_extension(public_key),
+        ],
+    );
     println!("Client Hello: {:?}", client_hello);
 
-    let h = tls13::handshake::Handshake::new(tls13::common::HSTYPE_CLIENT_HELLO, client_hello.marshall());
+    let h = tls13::handshake::Handshake::new(
+        tls13::common::HSTYPE_CLIENT_HELLO,
+        client_hello.marshall(),
+    );
     println!("Handshake: {:?}", h);
 
     let rec = tls13::record::TlsPlaintext::new(tls13::common::CONTENT_TYPE_HANDSHAKE, h.marshall());

@@ -1,5 +1,7 @@
-
-use crate::tls13::{common::*, extensions::{self, Extension, unmarshall_extensions}};
+use crate::tls13::{
+    common::*,
+    extensions::{self, Extension, unmarshall_extensions},
+};
 
 const SERVER_RANDOM_LENGTH: usize = 32;
 
@@ -29,14 +31,12 @@ pub fn unmarshall_server_hello(body: &Vec<u8>) -> Result<ServerHello, &'static s
 
     let cipher_suite_start = 35 + legacy_session_id_length;
     let legacy_session_id = body[35..cipher_suite_start].to_vec();
-    let cipher_suite = u16::from_be_bytes([
-        body[cipher_suite_start],
-        body[cipher_suite_start + 1],
-    ]);
+    let cipher_suite = u16::from_be_bytes([body[cipher_suite_start], body[cipher_suite_start + 1]]);
 
     let compression_method = body[cipher_suite_start + 2];
     let extensions_start = cipher_suite_start + 3;
-    let extensions_length = u16::from_be_bytes([body[extensions_start], body[extensions_start + 1]]) as usize;
+    let extensions_length =
+        u16::from_be_bytes([body[extensions_start], body[extensions_start + 1]]) as usize;
     if body.len() < extensions_start + 2 + extensions_length {
         return Err("Insufficient bytes for extensions");
     }
@@ -74,7 +74,8 @@ impl ServerHello {
                     continue;
                 }
                 let group = u16::from_be_bytes([ext.payload[0], ext.payload[1]]);
-                let key_exchange_length = u16::from_be_bytes([ext.payload[2], ext.payload[3]]) as usize;
+                let key_exchange_length =
+                    u16::from_be_bytes([ext.payload[2], ext.payload[3]]) as usize;
                 if ext.payload.len() < 4 + key_exchange_length {
                     continue;
                 }
