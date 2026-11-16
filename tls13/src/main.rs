@@ -7,6 +7,8 @@ use std::time::Duration;
 use aws_lc_rs::agreement::*;
 use aws_lc_rs::rand::{SecureRandom, SystemRandom};
 
+use crate::tls13::common::{TLS_AES_128_GCM_SHA256, TLS_VERSION_1_3};
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Hello, world!");
     let rng = SystemRandom::new();
@@ -46,5 +48,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let msg = tls13::handshake::unmarshall_handshake(&response.payload)?;
     let server_hello = tls13::server_hello::unmarshall_server_hello(&msg.body)?;
     println!("Server Hello: {:?}", server_hello);
+
+    if server_hello.cipher_suite != TLS_AES_128_GCM_SHA256 {
+        panic!(
+            "Server selected unsupported cipher suite: {:?}",
+            server_hello.cipher_suite
+        );
+    }
+    let version = server_hello.selected_version().unwrap();
+    if version != TLS_VERSION_1_3 {
+        panic!("Server selected unsupported version: {:?}", version);
+    }
+    let (group, key_exchange) = server_hello.key_share().unwrap();
+    if group != tls13::common::X25519 {
+        panic!("Server selected unsupported group: {:?}", group);
+    }
+    println!("Server key exchange: {:?}", key_exchange);
     Ok(())
 }
