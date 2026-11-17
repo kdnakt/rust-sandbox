@@ -64,5 +64,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         panic!("Server selected unsupported group: {:?}", group);
     }
     println!("Server key exchange: {:?}", key_exchange);
+
+    let server_pubkey = aws_lc_rs::agreement::UnparsedPublicKey::new(&aws_lc_rs::agreement::X25519, key_exchange);
+    let shared_secret = aws_lc_rs::agreement::agree_ephemeral(private_key, &server_pubkey, (), |key_material| {
+        Ok(key_material.to_vec())
+    }).unwrap();
+    println!("Shared secret: {:?}", shared_secret);
     Ok(())
 }
