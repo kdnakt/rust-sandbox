@@ -40,6 +40,9 @@ pub fn unmarshall_server_hello(body: &Vec<u8>) -> Result<ServerHello, &'static s
     if body.len() < extensions_start + 2 + extensions_length {
         return Err("Insufficient bytes for extensions");
     }
+    if body.len() > extensions_start + 2 + extensions_length {
+        return Err("Extra bytes after extensions");
+    }
     let extensions = body[extensions_start + 2..extensions_start + 2 + extensions_length].to_vec();
     let extensions = unmarshall_extensions(extensions)?;
 
