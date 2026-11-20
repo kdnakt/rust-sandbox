@@ -9,8 +9,16 @@ use aws_lc_rs::rand::{SecureRandom, SystemRandom};
 
 use crate::tls13::common::{TLS_AES_128_GCM_SHA256, TLS_VERSION_1_3};
 
+macro_rules! debug_println {
+    ($($arg:tt)*) => {
+        if cfg!(feature = "debug-print") {
+            println!($($arg)*);
+        }
+    };
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Hello, world!");
+    debug_println!("Hello, world!");
     let rng = SystemRandom::new();
     let private_key = EphemeralPrivateKey::generate(&X25519, &rng).unwrap();
     // create a public key from the private key, as Vec<u8>
@@ -28,26 +36,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             tls13::extensions::key_share_extension(public_key),
         ],
     );
-    println!("Client Hello: {:?}", client_hello);
+    debug_println!("Client Hello: {:?}", client_hello);
 
     let h = tls13::handshake::Handshake::new(
         tls13::common::HSTYPE_CLIENT_HELLO,
         client_hello.marshall(),
     );
-    println!("Handshake: {:?}", h);
+    debug_println!("Handshake: {:?}", h);
 
     let rec = tls13::record::TlsPlaintext::new(tls13::common::CONTENT_TYPE_HANDSHAKE, h.marshall());
-    println!("Record: {:?}", rec);
+    debug_println!("Record: {:?}", rec);
 
     // tcp connection to example.com:443
     let mut conn = TcpStream::connect("example.com:443").unwrap();
     conn.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
     conn.write(&rec.marshall()).unwrap();
     let response = tls13::record::read_record(&mut conn)?;
-    println!("Response: {:?}", response);
+    debug_println!("Response: {:?}", response);
     let msg = tls13::handshake::unmarshall_handshake(&response.payload)?;
     let server_hello = tls13::server_hello::unmarshall_server_hello(&msg.body)?;
-    println!("Server Hello: {:?}", server_hello);
+    debug_println!("Server Hello: {:?}", server_hello);
 
     if server_hello.cipher_suite != TLS_AES_128_GCM_SHA256 {
         panic!(
@@ -63,7 +71,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if group != tls13::common::X25519 {
         panic!("Server selected unsupported group: {:?}", group);
     }
-    println!("Server key exchange: {:?}", key_exchange);
+    debug_println!("Server key exchange: {:?}", key_exchange);
 
     let server_pubkey = aws_lc_rs::agreement::UnparsedPublicKey::new(&aws_lc_rs::agreement::X25519, key_exchange);
     let shared_secret = aws_lc_rs::agreement::agree_ephemeral(private_key, &server_pubkey, (), |key_material| {
