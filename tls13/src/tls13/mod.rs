@@ -3,6 +3,7 @@ pub mod client_hello;
 pub mod common;
 pub mod extensions;
 pub mod handshake;
+pub mod key_schedule;
 pub mod record;
 pub mod server_hello;
 
