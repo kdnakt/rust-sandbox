@@ -36,6 +36,16 @@ pub fn hkdf_expand_label(secret: &[u8], label: &str, context: Vec<u8>, length: u
     okm.as_ref()[..length].to_vec()
 }
 
+pub fn hkdf_extract(salt: &[u8], ikm: &[u8]) -> Vec<u8> {
+    let prk = hmac::Key::new(hmac::HMAC_SHA256, salt);
+    let okm = hmac::sign(&prk, ikm);
+    okm.as_ref().to_vec()
+}
+
+pub fn derive_secret(secret: &[u8], label: &str, transcript_hash: &[u8]) -> Vec<u8> {
+    hkdf_expand_label(secret, label, transcript_hash.to_vec(), 32)
+}
+
 // Transcript is a struct that holds the hash algorithm
 struct Transcript {
     hash: Context,
