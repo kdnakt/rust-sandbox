@@ -1,5 +1,5 @@
 
-use aws_lc_rs::hmac;
+use aws_lc_rs::{digest::Context, hmac};
 
 use crate::tls13::bytes::with_u8length;
 
@@ -34,4 +34,27 @@ pub fn hkdf_expand_label(secret: &[u8], label: &str, context: Vec<u8>, length: u
     let prk = hmac::Key::new(hmac::HMAC_SHA256, secret);
     let okm = hmac::sign(&prk, &info);
     okm.as_ref()[..length].to_vec()
+}
+
+// Transcript is a struct that holds the hash algorithm
+struct Transcript {
+    hash: Context,
+}
+
+fn new_transcript() -> Transcript {
+    Transcript {
+        hash: Context::new(&aws_lc_rs::digest::SHA256),
+    }
+}
+
+impl Transcript {
+    fn write(&mut self, data: &[u8]) {
+        self.hash.update(data);
+    }
+
+    fn sum(&self) -> Vec<u8> {
+        let hash_clone = self.hash.clone();
+        let digest = hash_clone.finish();
+        digest.as_ref().to_vec()
+    }
 }
