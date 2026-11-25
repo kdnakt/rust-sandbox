@@ -1,5 +1,5 @@
 
-use aws_lc_rs::{digest::Context, hmac};
+use aws_lc_rs::{digest::{Context, SHA256}, hmac};
 
 use crate::tls13::bytes::with_u8length;
 
@@ -44,6 +44,24 @@ pub fn hkdf_extract(salt: &[u8], ikm: &[u8]) -> Vec<u8> {
 
 pub fn derive_secret(secret: &[u8], label: &str, transcript_hash: &[u8]) -> Vec<u8> {
     hkdf_expand_label(secret, label, transcript_hash.to_vec(), 32)
+}
+
+pub fn derive_early_secret() -> Vec<u8> {
+    let zeros = vec![0u8; 32];
+    hkdf_extract(&zeros, &zeros)
+}
+
+pub fn derive_handshake_secret(shared_secret: &[u8]) -> Vec<u8> {
+    let empty_hash = SHA256.digest(&[]);
+    let early_secret = derive_early_secret();
+    let salt = derive_secret(&early_secret, "derived", &empty_hash);
+    hkdf_extract(&salt, shared_secret)
+}
+
+pub fn derive_main_secret(handshake_secret: &[u8]) -> Vec<u8> {
+    let empty_hash = SHA256.digest(&[]);
+    let salt = derive_secret(handshake_secret, "derived", &empty_hash);
+    hkdf_extract(&salt, &[])
 }
 
 // Transcript is a struct that holds the hash algorithm
