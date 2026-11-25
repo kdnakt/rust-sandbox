@@ -1,5 +1,7 @@
-
-use aws_lc_rs::{digest::{Context, SHA256}, hmac};
+use aws_lc_rs::{
+    digest::{Context, SHA256},
+    hmac,
+};
 
 use crate::tls13::bytes::with_u8length;
 
@@ -12,7 +14,7 @@ pub struct HkdfLabel {
 pub fn new_hkdf_label(label: &str, context: Vec<u8>, length: usize) -> HkdfLabel {
     let label = format!("tls13 {}", label);
     HkdfLabel {
-        length : length as u16,
+        length: length as u16,
         label,
         context,
     }
