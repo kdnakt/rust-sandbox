@@ -1,5 +1,5 @@
 use aws_lc_rs::{
-    digest::{Context, SHA256},
+    digest::{digest, Context, SHA256},
     hmac,
 };
 
@@ -54,14 +54,14 @@ pub fn derive_early_secret() -> Vec<u8> {
 }
 
 pub fn derive_handshake_secret(shared_secret: &[u8]) -> Vec<u8> {
-    let empty_hash = SHA256.digest(&[]);
+    let empty_hash = digest(&SHA256, &[]);
     let early_secret = derive_early_secret();
     let salt = derive_secret(&early_secret, "derived", &empty_hash);
     hkdf_extract(&salt, shared_secret)
 }
 
 pub fn derive_main_secret(handshake_secret: &[u8]) -> Vec<u8> {
-    let empty_hash = SHA256.digest(&[]);
+    let empty_hash = digest(&SHA256, &[]);
     let salt = derive_secret(handshake_secret, "derived", &empty_hash);
     hkdf_extract(&salt, &[])
 }
