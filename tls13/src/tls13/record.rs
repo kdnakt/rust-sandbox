@@ -70,3 +70,17 @@ pub fn read_record(stream: &mut impl std::io::Read) -> Result<TlsPlaintext, &'st
         payload,
     })
 }
+
+struct TlsInnerPlaintext {
+    payload: Vec<u8>,
+    content_type: ContentType,
+}
+
+impl TlsInnerPlaintext {
+    fn marshall(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+        buffer.extend_from_slice(&self.payload);
+        buffer.push(self.content_type);
+        buffer
+    }
+}
