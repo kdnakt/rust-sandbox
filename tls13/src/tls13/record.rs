@@ -84,3 +84,16 @@ impl TlsInnerPlaintext {
         buffer
     }
 }
+
+fn parse_tls_inner_plaintext(data: &[u8]) -> Result<TlsInnerPlaintext, &'static str> {
+    let mut i = data.len() - 1;
+    while 0 <= i && data[i] == 0 {
+        i -= 1;
+    }
+    if i < 0 {
+        return Err("TLS inner plaintext missing content type");
+    }
+    let content_type = data[i];
+    let payload = data[..i].to_vec();
+    Ok(TlsInnerPlaintext { payload, content_type })
+}
