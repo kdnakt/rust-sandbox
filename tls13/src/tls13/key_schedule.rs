@@ -88,3 +88,9 @@ impl Transcript {
         digest.as_ref().to_vec()
     }
 }
+
+fn traffic_keys(secret: &[u8]) -> (Vec<u8>, Vec<u8>) {
+    let client_key = hkdf_expand_label(secret, "key", vec![], 16);
+    let client_iv = hkdf_expand_label(secret, "iv", vec![], 12);
+    (client_key, client_iv)
+}
